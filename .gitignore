@@ -1,0 +1,7 @@
+*.log
+*.crt
+*.key
+logs/
+main
+out
+ddhs
