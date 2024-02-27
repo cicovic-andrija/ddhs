@@ -1,7 +1,4 @@
-*.log
-*.crt
-*.key
 logs/
-main
+local_assets/
 out
 ddhs

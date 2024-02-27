@@ -11,6 +11,7 @@ import (
 )
 
 func main() {
+	parseArgs()
 	server := newHTTPSS()
 	register(server)
 	errors := make(chan error, 1)
@@ -37,14 +38,19 @@ func newHTTPSS() *https.HTTPSServer {
 
 	server, err := https.NewServer(&https.Config{
 		Network: https.NetworkConfig{
-			IPAcceptHost: "localhost",
-			TCPPort:      8080,
-			TLSCertPath:  "tlspublic.crt",
-			TLSKeyPath:   "tlsprivate.key",
+			IPAcceptHost: config.host,
+			TCPPort:      config.port,
+			TLSCertPath:  "local_assets/tlspublic.crt",
+			TLSKeyPath:   "local_assets/tlsprivate.key",
 		},
-		LogRequests:      true,
-		LogsDirectory:    "logs",
-		EnableFileServer: false,
+		EnableFileServer: true,
+		FileServer: https.FileServerConfig{
+			URLPrefix: "/static/",
+			Directory: "static",
+			Allowed:   []string{"site.css"},
+		},
+		LogRequests:   true,
+		LogsDirectory: "logs",
 	})
 	if err != nil {
 		crash("https: %v", err)

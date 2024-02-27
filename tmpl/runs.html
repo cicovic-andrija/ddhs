@@ -1,0 +1,54 @@
+{{ template "lead.html" }}
+<h1>All Runs</h1>
+
+<form action="/runs" method="get" class="tool-bar">
+    <label for="search">Search Term</label>
+    <input id="search" type="search" placeholder='{{ or .SearchQuery "(not working)" }}' name="q" value="" />
+    <input type="submit" value="Search" />
+</form>
+
+<table>
+    <thead>
+        <tr>
+            <th>#</th>
+            <th>Date</th>
+            <th>Location</th>
+            <th>Duration</th>
+            <th>Distance</th>
+            <th>Avg. Pace</th>
+            <th>Max. Pace</th>
+            <th>Avg. Speed</th>
+            <th>Max. Speed</th>
+            <th>Avg. Heart Rate</th>
+            <th>Max. Heart Rate</th>
+            <th></th>
+        </tr>
+    </thead>
+    <tbody>
+        {{ range .Runs }}
+        <tr>
+            <td>{{ .Num }}</td>
+            <td>{{ .Date.Format "January 2, 2006." }}</td>
+            <td>{{ .Location }}</td>
+            <td>{{ .Duration.String }}</td>
+            <td>{{ .Distance }} km</td>
+            <td>{{ .AvgPace.String }}</td>
+            <td>{{ .MaxPace.String }}</td>
+            <td>{{ .AvgSpeed }} km/h</td>
+            <td>{{ .MaxSpeed }} km/h</td>
+            <td>{{ .AvgHeartRate }}</td>
+            <td>{{ .MaxHeartRate }}</td>
+            <td>
+                <a href="/runs/{{ .ID }}/edit">Edit</a>
+                <a href="/runs/{{ .ID }}">View</a>
+            </td>
+        </tr>
+        {{ end }}
+    </tbody>
+</table>
+
+<p>
+    <a href="/runs/new">New run</a>
+</p>
+
+{{ template "trail.html" }}
