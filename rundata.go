@@ -3,7 +3,7 @@ package main
 import "time"
 
 // temporary in-memory database
-var runs = []Run{
+var runs = []*Run{
 	{
 		Num:          1,
 		Date:         parseDate("2024-02-22"),
@@ -75,6 +75,17 @@ type Run struct {
 	AvgHeartRate int
 	MaxHeartRate int
 	OneKmLaps    []time.Duration
+}
+
+func NewRun() *Run {
+	return &Run{
+		Date:      time.Now().UTC(),
+		OneKmLaps: make([]time.Duration, 0),
+	}
+}
+
+func (r *Run) SetNum(id int) {
+	r.Num = id + 1
 }
 
 func (r *Run) ID() int {

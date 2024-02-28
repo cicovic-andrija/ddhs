@@ -8,7 +8,8 @@ import (
 
 type Page struct {
 	SearchQuery string
-	Runs        []Run
+	Runs        []*Run
+	Run         *Run
 }
 
 func runsHandler(w http.ResponseWriter, r *http.Request) {
@@ -16,7 +17,17 @@ func runsHandler(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		panic(err)
 	}
-	if err := tmpl.Execute(w, Page{Runs: runs}); err != nil {
+	if err := tmpl.Execute(w, &Page{Runs: runs}); err != nil {
+		fmt.Printf("%v\n", err)
+	}
+}
+
+func runHandler(w http.ResponseWriter, r *http.Request) {
+	tmpl, err := template.ParseFiles("tmpl/run.html", "tmpl/lead.html", "tmpl/trail.html")
+	if err != nil {
+		panic(err)
+	}
+	if err := tmpl.Execute(w, &Page{Run: NewRun()}); err != nil {
 		fmt.Printf("%v\n", err)
 	}
 }
@@ -33,6 +44,11 @@ func register(mux HandlerMux) HandlerMux {
 	mux.Handle(
 		"/runs",
 		http.HandlerFunc(runsHandler),
+	)
+
+	mux.Handle(
+		"/runs/new",
+		http.HandlerFunc(runHandler),
 	)
 
 	return mux

@@ -1,0 +1,28 @@
+{{ template "lead.html" }}
+
+<h1>Run</h1>
+
+<form action="/contacts/new" method="post">
+    <fieldset>
+        <legend>Run Data</legend>
+        <p>
+            <label for="date">Date</label>
+            <input name="date" id="date" type="date" value="{{ .Run.Date.Format "2006-01-02" }}">
+            <span class="error"></span>
+        </p>
+        <p>
+            <label for="location">Location</label>
+            <input name="location" id="location" type="text" placeholder="Location..."
+                value="{{ .Run.Location }}">
+            <span class="error"></span>
+        </p>
+
+        <button>Save</button>
+    </fieldset>
+</form>
+
+<p>
+    <a href="/runs">Back</a>
+</p>
+
+{{ template "trail.html" }}
