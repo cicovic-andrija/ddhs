@@ -7,13 +7,13 @@
         <legend>Run Data</legend>
         <p>
             <label for="date">Date</label>
-            <input name="date" id="date" type="date" value="{{ .Run.Date.Format "2006-01-02" }}">
+            <input name="date" id="date" type="date" value="{{ .Run.Data.Date.Format "2006-01-02" }}">
             <span class="error"></span>
         </p>
         <p>
             <label for="location">Location</label>
             <input name="location" id="location" type="text" placeholder="Location..."
-                value="{{ .Run.Location }}">
+                value="{{ .Run.Data.Location }}">
             <span class="error"></span>
         </p>
 

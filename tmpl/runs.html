@@ -1,10 +1,13 @@
 {{ template "lead.html" }}
+
 <h1>All Runs</h1>
 
-<form action="/runs" method="get" class="tool-bar">
-    <label for="search">Search Term</label>
-    <input id="search" type="search" placeholder='{{ or .SearchQuery "(not working)" }}' name="q" value="" />
-    <input type="submit" value="Search" />
+<form action="/runs" method="get">
+    <label for="filter_before">Before:</label>
+    <input id="filter_before" type="date" name="before" value="" />
+    <label for="filter_after">After:</label>
+    <input id="filter_after" type="date" name="after" value="" />
+    <input type="submit" value="Filter" />
 </form>
 
 <table>
@@ -27,20 +30,20 @@
     <tbody>
         {{ range .Runs }}
         <tr>
-            <td>{{ .Num }}</td>
-            <td>{{ .Date.Format "January 2, 2006." }}</td>
-            <td>{{ .Location }}</td>
-            <td>{{ .Duration.String }}</td>
-            <td>{{ .Distance }} km</td>
-            <td>{{ .AvgPace.String }}</td>
-            <td>{{ .MaxPace.String }}</td>
-            <td>{{ .AvgSpeed }} km/h</td>
-            <td>{{ .MaxSpeed }} km/h</td>
-            <td>{{ .AvgHeartRate }}</td>
-            <td>{{ .MaxHeartRate }}</td>
+            <td>{{ .Data.Num }}</td>
+            <td>{{ .Data.Date.Format "January 2, 2006." }}</td>
+            <td>{{ .Data.Location }}</td>
+            <td>{{ .Data.Duration.String }}</td>
+            <td>{{ .Data.Distance }} km</td>
+            <td>{{ .Data.AvgPace.String }}</td>
+            <td>{{ .Data.MaxPace.String }}</td>
+            <td>{{ .Data.AvgSpeed }} km/h</td>
+            <td>{{ .Data.MaxSpeed }} km/h</td>
+            <td>{{ .Data.AvgHeartRate }}</td>
+            <td>{{ .Data.MaxHeartRate }}</td>
             <td>
-                <a href="/runs/{{ .ID }}/edit">Edit</a>
-                <a href="/runs/{{ .ID }}">View</a>
+                <a href="/runs/{{ .Data.ID }}/edit">Edit</a>
+                <a href="/runs/{{ .Data.ID }}">View</a>
             </td>
         </tr>
         {{ end }}

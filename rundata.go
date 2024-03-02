@@ -44,6 +44,25 @@ var runs = []*Run{
 			parseDuration("6m19s"),
 		},
 	},
+	{
+		Num:          3,
+		Date:         parseDate("2024-03-01"),
+		Location:     "Dunavski kej, Beograd",
+		Duration:     parseDuration("32m21s"),
+		Distance:     4.83,
+		AvgPace:      parseDuration("6m41s"),
+		MaxPace:      parseDuration("5m18s"),
+		AvgSpeed:     8.9,
+		MaxSpeed:     11.2,
+		AvgHeartRate: 147,
+		MaxHeartRate: 169,
+		OneKmLaps: []time.Duration{
+			parseDuration("6m17s"),
+			parseDuration("6m55s"),
+			parseDuration("6m56s"),
+			parseDuration("6m35s"),
+		},
+	},
 }
 
 func parseDate(str string) time.Time {

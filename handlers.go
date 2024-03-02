@@ -8,8 +8,33 @@ import (
 
 type Page struct {
 	SearchQuery string
-	Runs        []*Run
-	Run         *Run
+
+	Dive  ModelRepresentation[Dive]
+	Dives []ModelRepresentation[Dive]
+
+	Run  ModelRepresentation[Run]
+	Runs []ModelRepresentation[Run]
+}
+
+type ModelRepresentation[T any] struct {
+	Data        *T
+	InputErrors map[string]string
+}
+
+func WrapModel[T any](ptr *T) ModelRepresentation[T] {
+	return ModelRepresentation[T]{
+		Data:        ptr,
+		InputErrors: make(map[string]string),
+	}
+}
+
+func WrapMultipleModels[T any](s []*T) []ModelRepresentation[T] {
+	fmt.Println(len(s))
+	wrapped := make([]ModelRepresentation[T], 0, len(s))
+	for _, ptr := range s {
+		wrapped = append(wrapped, WrapModel(ptr))
+	}
+	return wrapped
 }
 
 func runsHandler(w http.ResponseWriter, r *http.Request) {
@@ -17,7 +42,7 @@ func runsHandler(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		panic(err)
 	}
-	if err := tmpl.Execute(w, &Page{Runs: runs}); err != nil {
+	if err := tmpl.Execute(w, &Page{Runs: WrapMultipleModels(runs)}); err != nil {
 		fmt.Printf("%v\n", err)
 	}
 }
@@ -27,7 +52,7 @@ func runHandler(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		panic(err)
 	}
-	if err := tmpl.Execute(w, &Page{Run: NewRun()}); err != nil {
+	if err := tmpl.Execute(w, &Page{Run: WrapModel(NewRun())}); err != nil {
 		fmt.Printf("%v\n", err)
 	}
 }
