@@ -1,0 +1,40 @@
+{{ template "lead" . }}
+
+<h1>{{ .Title }}</h1>
+
+<form action="/dives" method="get">
+    <label for="filter_before">Before:</label>
+    <input id="filter_before" type="date" name="before" value="{{ .BeforeFilter }}" />
+    <label for="filter_after">After:</label>
+    <input id="filter_after" type="date" name="after" value="{{ .AfterFilter }}" />
+    <input type="submit" value="Filter" />
+</form>
+
+<table>
+    <thead>
+        <tr>
+            <th>#</th>
+            <th>Date</th>
+            <th>Site</th>
+            <th></th>
+        </tr>
+    </thead>
+    <tbody>
+        {{ range .Dives }}
+        <tr>
+            <td>{{ .Num }}</td>
+            <td>{{ .Date.Format "January 2, 2006." }}</td>
+            <td>{{ .Site }}</td>
+            <td>
+                <a href="/dives/{{ .Num }}">View/Edit</a>
+            </td>
+        </tr>
+        {{ end }}
+    </tbody>
+</table>
+
+<p>
+    <a href="/dives/new">New Dive</a>
+</p>
+
+{{ template "trail" . }}

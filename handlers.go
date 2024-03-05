@@ -1,60 +1,127 @@
 package main
 
 import (
+	"errors"
 	"fmt"
 	"html/template"
 	"net/http"
+	"net/url"
+	"path/filepath"
+	"strconv"
+	"strings"
+	"time"
+
+	"github.com/cicovic-andrija/libgo/logging"
 )
 
 type Page struct {
-	SearchQuery string
-
-	Dive  ModelRepresentation[Dive]
-	Dives []ModelRepresentation[Dive]
-
-	Run  ModelRepresentation[Run]
-	Runs []ModelRepresentation[Run]
+	Title        string
+	BeforeFilter string
+	AfterFilter  string
+	InputErrors  map[string]string
+	Dive         *Dive
+	Dives        []*Dive
 }
 
-type ModelRepresentation[T any] struct {
-	Data        *T
-	InputErrors map[string]string
-}
-
-func WrapModel[T any](ptr *T) ModelRepresentation[T] {
-	return ModelRepresentation[T]{
-		Data:        ptr,
-		InputErrors: make(map[string]string),
+func divesHandler(w http.ResponseWriter, r *http.Request) {
+	if strings.HasSuffix(r.URL.Path, "/") {
+		redirect(strings.TrimSuffix(r.URL.Path, "/"), w, r)
+		return
 	}
-}
 
-func WrapMultipleModels[T any](s []*T) []ModelRepresentation[T] {
-	fmt.Println(len(s))
-	wrapped := make([]ModelRepresentation[T], 0, len(s))
-	for _, ptr := range s {
-		wrapped = append(wrapped, WrapModel(ptr))
+	page := &Page{
+		Title:        "Dive Log",
+		BeforeFilter: r.URL.Query().Get("before"),
+		AfterFilter:  r.URL.Query().Get("after"),
+		Dives:        dives,
 	}
-	return wrapped
+
+	render("dives.html", w, page)
 }
 
-func runsHandler(w http.ResponseWriter, r *http.Request) {
-	tmpl, err := template.ParseFiles("tmpl/runs.html", "tmpl/lead.html", "tmpl/trail.html")
+func diveHandler(w http.ResponseWriter, r *http.Request) {
+	num, err := strconv.Atoi(r.PathValue("num"))
 	if err != nil {
-		panic(err)
+		http.NotFound(w, r)
+		return
 	}
-	if err := tmpl.Execute(w, &Page{Runs: WrapMultipleModels(runs)}); err != nil {
-		fmt.Printf("%v\n", err)
+
+	id := ntoi(num)
+	if id < 0 || id >= len(dives) {
+		http.NotFound(w, r)
+		return
+	}
+
+	dive := dives[id]
+	page := &Page{
+		Title: fmt.Sprintf("Dive #%d", dive.Num),
+		Dive:  dive,
+	}
+
+	render("dive.html", w, page)
+}
+
+func newDiveHandler(w http.ResponseWriter, r *http.Request) {
+	page := &Page{
+		Title: "New Dive",
+		Dive:  NewDive(),
+	}
+
+	render("dive.html", w, page)
+}
+
+func diveFormHandler(w http.ResponseWriter, r *http.Request) {
+	var (
+		id int
+		// dive = NewDive()
+	)
+
+	if numStr := r.PathValue("num"); numStr != "" { // .../{num}/edit
+		if num, err := strconv.Atoi(r.PathValue("num")); err != nil {
+			http.NotFound(w, r)
+			return
+		} else {
+			id = ntoi(num)
+			if id < 0 || id >= len(dives) {
+				http.NotFound(w, r)
+				return
+			}
+		}
+	} else { // .../new
+		id = -1
+	}
+
+	redirect("/dives", w, r)
+}
+
+func render(tmplName string, w http.ResponseWriter, data any) {
+	const (
+		tmplDir = "tmpl"
+	)
+	tmpl, err := template.ParseFiles(filepath.Join(tmplDir, tmplName), filepath.Join(tmplDir, "partials.html"))
+	if err != nil {
+		traceServerMessage(logging.SevError, "%v", err)
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+	if err := tmpl.Execute(w, data); err != nil {
+		traceServerMessage(logging.SevError, "%v", err)
+		w.WriteHeader(http.StatusInternalServerError)
+		return
 	}
 }
 
-func runHandler(w http.ResponseWriter, r *http.Request) {
-	tmpl, err := template.ParseFiles("tmpl/run.html", "tmpl/lead.html", "tmpl/trail.html")
-	if err != nil {
-		panic(err)
+func parseDateFromRequest(r *http.Request, nameInForm string) (date time.Time, err error) {
+	if dateStr := r.FormValue(nameInForm); dateStr != "" {
+		if parsed, pe := time.Parse("2006-01-02", dateStr); pe != nil {
+			err = errors.New("provided date isn't valid")
+		} else {
+			date = parsed
+		}
+	} else {
+		err = errors.New("date not provided")
 	}
-	if err := tmpl.Execute(w, &Page{Run: WrapModel(NewRun())}); err != nil {
-		fmt.Printf("%v\n", err)
-	}
+	return
 }
 
 type HandlerMux interface {
@@ -67,14 +134,39 @@ func register(mux HandlerMux) HandlerMux {
 	}
 
 	mux.Handle(
-		"/runs",
-		http.HandlerFunc(runsHandler),
+		"GET /dives",
+		http.HandlerFunc(divesHandler),
 	)
 
 	mux.Handle(
-		"/runs/new",
-		http.HandlerFunc(runHandler),
+		"GET /dives/{$}",
+		http.HandlerFunc(divesHandler),
+	)
+
+	mux.Handle(
+		"GET /dives/{num}",
+		http.HandlerFunc(diveHandler),
+	)
+
+	mux.Handle(
+		"POST /dives/{num}/edit",
+		http.HandlerFunc(diveFormHandler),
+	)
+
+	mux.Handle(
+		"GET /dives/new",
+		http.HandlerFunc(newDiveHandler),
+	)
+
+	mux.Handle(
+		"POST /dives/new",
+		http.HandlerFunc(diveFormHandler),
 	)
 
 	return mux
+}
+
+func redirect(path string, w http.ResponseWriter, r *http.Request) {
+	u := &url.URL{Path: path, RawQuery: r.URL.RawQuery}
+	http.Redirect(w, r, u.String(), http.StatusMovedPermanently)
 }

@@ -1,6 +1,7 @@
 package main
 
 import (
+	"flag"
 	"fmt"
 	"os"
 	"os/signal"
@@ -10,9 +11,19 @@ import (
 	"github.com/cicovic-andrija/libgo/logging"
 )
 
+var (
+	config struct {
+		host        string
+		port        int
+		logRequests bool
+	}
+
+	server *https.HTTPSServer
+)
+
 func main() {
 	parseArgs()
-	server := newHTTPSS()
+	server = newHTTPSS()
 	register(server)
 	errors := make(chan error, 1)
 	interrupts := make(chan os.Signal, 1)
@@ -36,32 +47,52 @@ func newHTTPSS() *https.HTTPSServer {
 		crash("mkdir: %v", err)
 	}
 
-	server, err := https.NewServer(&https.Config{
+	srv, err := https.NewServer(&https.Config{
 		Network: https.NetworkConfig{
 			IPAcceptHost: config.host,
 			TCPPort:      config.port,
 			TLSCertPath:  "local_assets/tlspublic.crt",
 			TLSKeyPath:   "local_assets/tlsprivate.key",
 		},
-		EnableFileServer: true,
 		FileServer: https.FileServerConfig{
+			Enabled:   true,
 			URLPrefix: "/static/",
 			Directory: "static",
 			Allowed:   []string{"site.css"},
 		},
-		LogRequests:   true,
+		LogRequests:   config.logRequests,
 		LogsDirectory: "logs",
 	})
 	if err != nil {
 		crash("https: %v", err)
 	}
 
-	return server
+	return srv
+}
+
+func parseArgs() {
+	var (
+		devFlag = flag.Bool("d", false, "dev (local) execution")
+	)
+
+	flag.Parse()
+	config.host = "any"
+	config.port = 443
+	config.logRequests = false
+	if *devFlag {
+		config.host = "localhost"
+		config.port = 8080
+		config.logRequests = true
+	}
+}
+
+func traceServerMessage(sev logging.Severity, format string, v ...any) {
+	server.GetLogger().Output(sev, 2, format, v...)
 }
 
 func crash(format string, v ...any) {
-	if crashlog, err := logging.NewFileLog("crash.log"); err == nil {
-		crashlog.Output(logging.SevError, 2, format, v...)
+	if crashFile, err := logging.NewFileLog("crash.log"); err == nil {
+		crashFile.Output(logging.SevError, 2, format, v...)
 	}
 	panic(fmt.Errorf(format, v...))
 }

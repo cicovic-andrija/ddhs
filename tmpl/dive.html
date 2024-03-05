@@ -1,0 +1,31 @@
+{{ template "lead" . }}
+
+<h1>{{ .Title }}</h1>
+
+<form action="{{ if eq .Dive.Num 0 }}/dives/new{{ else }}/dives/{{ .Dive.Num }}/edit{{ end }}" method="post">
+    <fieldset>
+        <legend>Dive Data</legend>
+        <p>
+            <label for="date">Date</label>
+            <input name="date" id="date" type="date" value="{{ .Dive.Date.Format "2006-01-02" }}">
+            <span class="error">{{ .InputErrors.date }}</span>
+        </p>
+        <p>
+            <label for="site">Site</label>
+            <input name="site" id="site" type="text" placeholder="Site..."
+                value="{{ .Dive.Site }}">
+            <span class="error">{{ .InputErrors.site }}</span>
+        </p>
+        <button>Save</button>
+    </fieldset>
+</form>
+
+{{ if ne .Dive.Num 0 }}
+<button hx-delete="/dives/{{ .Dive.Num }}">Delete</button>
+{{ end }}
+
+<p>
+    <a href="/dives">Back</a>
+</p>
+
+{{ template "trail" . }}
