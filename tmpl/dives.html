@@ -4,34 +4,59 @@
 
 <form action="/dives" method="get">
     <label for="filter_before">Before:</label>
-    <input id="filter_before" type="date" name="before" value="{{ .BeforeFilter }}" />
+    <input id="filter_before" type="date" name="before" value="{{ .BeforeStr }}" />
     <label for="filter_after">After:</label>
-    <input id="filter_after" type="date" name="after" value="{{ .AfterFilter }}" />
+    <input id="filter_after" type="date" name="after" value="{{ .AfterStr }}" />
     <input type="submit" value="Filter" />
 </form>
 
-<table>
-    <thead>
-        <tr>
-            <th>#</th>
-            <th>Date</th>
-            <th>Site</th>
-            <th></th>
-        </tr>
-    </thead>
-    <tbody>
-        {{ range .Dives }}
-        <tr>
-            <td>{{ .Num }}</td>
-            <td>{{ .Date.Format "January 2, 2006." }}</td>
-            <td>{{ .Site }}</td>
-            <td>
-                <a href="/dives/{{ .Num }}">View/Edit</a>
-            </td>
-        </tr>
-        {{ end }}
-    </tbody>
-</table>
+</form>
+    <table>
+        <thead>
+            <tr>
+                <th></th>
+                <th>Dive #</th>
+                <th>Date</th>
+                <th>Site</th>
+                <th>Actions</th>
+            </tr>
+        </thead>
+        <tbody>
+            {{ range .Dives }}
+            <tr>
+                <td><input type="checkbox" name="selected_dive_nums" value="{{ .Num }}"></td>
+                <td>{{ .Num }}</td>
+                <td>{{ .Date.Format "January 2, 2006." }}</td>
+                <td>{{ .Site }}</td>
+                <td>
+                    <a href="/dives/{{ .Num }}">Inspect</a> |
+                    <a href="#"
+                    hx-delete="/dives/{{ .Num }}"
+                    hx-swap="outerHTML swap:1s"
+                    hx-confirm="Are you sure you want to delete this dive record?"
+                    hx-target="closest tr">Delete</a>
+                </td>
+            </tr>
+            {{ end }}
+            {{ if not .LastPage }}
+            <tr>
+                <td colspan="5" style="text-align: center">
+                    <button hx-target="closest tr"
+                            hx-swap="outerHTML"
+                            hx-select="tbody > tr"
+                            hx-get="/dives?{{ .URLBeforeQuery }}{{ .URLAfterQuery }}page={{ .NextPage }}">More...</span>
+                </td>
+            </tr>
+            {{ end }}
+        </tbody>
+    </table>
+
+    <button hx-delete="/contacts"
+            hx-confirm="Are you sure you want to delete these contacts?"
+            hx-target="body">
+        Delete Selected Dives
+    </button>
+</form>
 
 <p>
     <a href="/dives/new">New Dive</a>

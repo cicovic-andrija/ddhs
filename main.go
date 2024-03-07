@@ -44,7 +44,7 @@ func main() {
 
 func newHTTPSS() *https.HTTPSServer {
 	if err := fs.MkdirIfNotExists("logs"); err != nil {
-		crash("mkdir: %v", err)
+		crashEarly("mkdir: %v", err)
 	}
 
 	srv, err := https.NewServer(&https.Config{
@@ -64,7 +64,7 @@ func newHTTPSS() *https.HTTPSServer {
 		LogsDirectory: "logs",
 	})
 	if err != nil {
-		crash("https: %v", err)
+		crashEarly("https: %v", err)
 	}
 
 	return srv
@@ -91,6 +91,12 @@ func traceServerMessage(sev logging.Severity, format string, v ...any) {
 }
 
 func crash(format string, v ...any) {
+	err := fmt.Errorf(format, v...)
+	traceServerMessage(logging.SevError, err.Error())
+	panic(err)
+}
+
+func crashEarly(format string, v ...any) {
 	if crashFile, err := logging.NewFileLog("crash.log"); err == nil {
 		crashFile.Output(logging.SevError, 2, format, v...)
 	}

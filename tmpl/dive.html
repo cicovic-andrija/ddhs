@@ -12,8 +12,12 @@
         </p>
         <p>
             <label for="site">Site</label>
-            <input name="site" id="site" type="text" placeholder="Site..."
-                value="{{ .Dive.Site }}">
+            <input name="site" id="site" type="text"
+                   hx-get="/actions/validate/site"
+                   hx-target="next .error"
+                   hx-trigger="change, keyup delay:200ms changed"
+                   placeholder="Dive site ..."
+                   value="{{ .Dive.Site }}">
             <span class="error">{{ .InputErrors.site }}</span>
         </p>
         <button>Save</button>
@@ -21,7 +25,12 @@
 </form>
 
 {{ if ne .Dive.Num 0 }}
-<button hx-delete="/dives/{{ .Dive.Num }}">Delete</button>
+<button
+    id="delete-btn"
+    hx-delete="/dives/{{ .Dive.Num }}"
+    hx-confirm="Are you sure you want to delete this dive record?"
+    hx-target="body"
+    hx-push-url="true">Delete</button>
 {{ end }}
 
 <p>
