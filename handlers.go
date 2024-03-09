@@ -31,13 +31,15 @@ type Page struct {
 	InputErrors  map[string]string
 	Dive         *Dive
 	Dives        []*Dive
+	Total        int
+	Renumbered   bool
 }
 
 func (p *Page) NextPage() int {
 	return p.PageFilter + 1
 }
 
-func (p *Page) BeforeStr() string {
+func (p *Page) BeforeQueryVal() string {
 	if p.BeforeFilter.IsZero() {
 		return ""
 	}
@@ -51,7 +53,7 @@ func (p *Page) URLBeforeQuery() string {
 	return fmt.Sprintf("%s=%s&", BeforeQueryTag, dateToStr(p.BeforeFilter))
 }
 
-func (p *Page) AfterStr() string {
+func (p *Page) AfterQueryVal() string {
 	if p.AfterFilter.IsZero() {
 		return ""
 	}
@@ -66,10 +68,6 @@ func (p *Page) URLAfterQuery() string {
 }
 
 func divesHandler(w http.ResponseWriter, r *http.Request) {
-	var (
-		filtered DiveLog = dives
-	)
-
 	if strings.HasSuffix(r.URL.Path, "/") {
 		u := &url.URL{Path: strings.TrimSuffix(r.URL.Path, "/"), RawQuery: r.URL.RawQuery}
 		http.Redirect(w, r, u.String(), http.StatusMovedPermanently)
@@ -77,6 +75,10 @@ func divesHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	page := &Page{Title: "Dive Log"}
+
+	InMemLog.RLock()
+	defer InMemLog.RUnlock()
+	filtered := InMemLog.All()
 
 	if beforeValue := r.URL.Query().Get(BeforeQueryTag); beforeValue != "" {
 		if beforeDate, err := time.Parse(DateLayout, beforeValue); err == nil {
@@ -92,6 +94,11 @@ func divesHandler(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
+	if InMemLog.IsRenumbered() {
+		page.Renumbered = true
+	}
+
+	page.Total = len(filtered)
 	pageNum, err := strconv.Atoi(r.URL.Query().Get(PageQueryTag))
 	if err != nil || pageNum < 1 {
 		pageNum = 1
@@ -105,21 +112,18 @@ func divesHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func diveHandler(w http.ResponseWriter, r *http.Request) {
-	num, err := strconv.Atoi(r.PathValue(NumTag))
-	if err != nil {
+	id := r.PathValue(IDTag)
+	InMemLog.RLock()
+	defer InMemLog.RUnlock()
+
+	dive := InMemLog.Find(id)
+	if dive == nil {
 		http.NotFound(w, r)
 		return
 	}
 
-	id := ntoi(num)
-	if id < 0 || id >= len(dives) {
-		http.NotFound(w, r)
-		return
-	}
-
-	dive := dives[id]
 	page := &Page{
-		Title: fmt.Sprintf("Dive #%d", dive.Num),
+		Title: fmt.Sprintf("Dive #%d", dive.Num()),
 		Dive:  dive,
 	}
 
@@ -127,27 +131,12 @@ func diveHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func diveRemovalHandler(w http.ResponseWriter, r *http.Request) {
-	num, err := strconv.Atoi(r.PathValue(NumTag))
-	if err != nil {
-		http.NotFound(w, r)
-		return
-	}
+	id := r.PathValue(IDTag)
+	InMemLog.Lock()
+	defer InMemLog.Unlock()
+	InMemLog.Delete(id)
 
-	id := ntoi(num)
-	if id < 0 || id >= len(dives) {
-		http.NotFound(w, r)
-		return
-	}
-
-	fmt.Printf("Deleting %d\n", id)
-
-	// TODO: fix potential data races
-	for i := id; i < len(dives)-1; i++ {
-		dives[i] = dives[i+1]
-		dives[i].Num = iton(i)
-	}
-	dives = dives[:len(dives)-1]
-
+	// TODO: Also check for HX-Request header.
 	if r.Header.Get("HX-Trigger") == "delete-btn" {
 		http.Redirect(w, r, "/dives", http.StatusSeeOther) // 303 because this is a redirect to a DELETE request
 	} else {
@@ -166,52 +155,45 @@ func newDiveHandler(w http.ResponseWriter, r *http.Request) {
 
 func diveFormHandler(w http.ResponseWriter, r *http.Request) {
 	var (
-		id      int
-		page    = &Page{InputErrors: make(map[string]string)}
-		editing = false
+		page     = &Page{InputErrors: make(map[string]string)}
+		existing *Dive
 	)
 
-	if numStr := r.PathValue(NumTag); numStr != "" { // .../{num}/edit
-		if num, err := strconv.Atoi(numStr); err != nil {
+	if id := r.PathValue(IDTag); id != "" { // .../{id}/edit
+		InMemLog.RLock()
+		if existing = InMemLog.Find(id); existing == nil {
+			InMemLog.RUnlock()
 			http.NotFound(w, r)
 			return
-		} else {
-			id = ntoi(num)
-			if id < 0 || id >= len(dives) {
-				http.NotFound(w, r)
-				return
-			}
 		}
-		editing = true
-	} else { // .../new
-		// TODO: for now, always append new dives; later: renumber by date and time
-		id = len(dives)
-	}
+		InMemLog.RUnlock()
+	} // else .../new
 
 	if dive, ok := parseDiveFromRequest(r, page.InputErrors); ok {
-		dive.Num = iton(id)
-		if id == len(dives) {
-			dives = append(dives, dive)
+		InMemLog.Lock()
+		if existing != nil {
+			InMemLog.Replace(existing, dive)
 		} else {
-			dives[id] = dive
+			InMemLog.Insert(dive)
 		}
+		InMemLog.Unlock()
 		http.Redirect(w, r, "/dives", http.StatusFound)
-	} else {
+	} else { // not ok
 		page.Title = "New Dive"
-		if editing {
-			page.Title = fmt.Sprintf("Dive #%d", iton(id))
+		if existing != nil {
+			page.Title = fmt.Sprintf("Dive #%d", existing.Num())
+			page.Dive = existing
+		} else {
+			page.Dive = dive
 		}
-		page.Dive = dive
 		render("dive.html", w, page)
 	}
 }
 
 func parseDiveFromRequest(r *http.Request, errorMap map[string]string) (dive *Dive, ok bool) {
 	ok = true
-	dive = &Dive{
-		Num:  0,
-		Site: r.FormValue(SiteTag),
-	}
+	dive = NewDive()
+	dive.Site = r.FormValue(SiteTag)
 
 	if date, err := parseDateFromRequest(r, DateTag); err != nil {
 		ok = false
@@ -232,8 +214,8 @@ func inputValidationHandler(w http.ResponseWriter, r *http.Request) {
 
 	switch tag {
 	case SiteTag:
-		if value != "allowed value" {
-			errMsg = "Field doesn't contain the allowed value."
+		if strings.TrimSpace(value) == "" {
+			errMsg = "Please name a <mark>location</mark> of the dive."
 		}
 	}
 
@@ -295,17 +277,17 @@ func register(mux HandlerMux) HandlerMux {
 	)
 
 	mux.Handle(
-		"GET /dives/{num}",
+		"GET /dives/{id}",
 		http.HandlerFunc(diveHandler),
 	)
 
 	mux.Handle(
-		"POST /dives/{num}/edit",
+		"POST /dives/{id}/edit",
 		http.HandlerFunc(diveFormHandler),
 	)
 
 	mux.Handle(
-		"DELETE /dives/{num}",
+		"DELETE /dives/{id}",
 		http.HandlerFunc(diveRemovalHandler),
 	)
 

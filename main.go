@@ -27,6 +27,7 @@ func main() {
 	register(server)
 	errors := make(chan error, 1)
 	interrupts := make(chan os.Signal, 1)
+	InitInMemLog()
 	server.ListenAndServeAsync(errors)
 	signal.Notify(interrupts, os.Interrupt)
 	for {

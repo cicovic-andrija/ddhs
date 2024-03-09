@@ -1,12 +1,47 @@
-table {
-    width: 100%;
-    margin-top: 12px;
-    margin-bottom: 12px;
+/* ----------------------------------------- */
+/* Overrides for definitions from Simple.css */
+
+/* Always use the "light" theme. */
+:root,
+::backdrop {
+    --bg: #fff;
+    --accent-bg: #f5f7ff;
+    --text: #212121;
+    --text-light: #585858;
+    --border: #898EA4;
+    --accent: #0d47a1;
+    --accent-hover: #1266e2;
+    --accent-text: var(--bg);
+    --code: #d81b60;
+    --preformatted: #444;
+    --marked: #add8e6;
+    --disabled: #efefef;
 }
 
-th {
-    border-top: 2px solid black;
-    border-bottom: 2px solid black;
+/* Light theme contd. Hacks: */
+input[type="date"]::-webkit-calendar-picker-indicator {
+    filter: invert(0.8);
+    cursor: pointer;
+    opacity: 0.6;
+}
+input[type="date"]::-webkit-calendar-picker-indicator:hover {
+    opacity: 1;
+}
+
+/* Override <mark> tag settings. */
+mark {
+    padding: 2px 5px;
+    border-radius: var(--standard-border-radius);
+    background-color: var(--code);
+    color: white;
+}
+
+/* ----------------------------------------- */
+/* Custom definitions. */
+
+.error {
+    display: inline-block;
+    color: var(--code);
 }
 
 tr.htmx-swapping {
@@ -14,64 +49,7 @@ tr.htmx-swapping {
     transition: opacity 1s ease-out;
 }
 
-td {
-    text-align: center;
-    vertical-align: middle;
-}
-
-tr:last-child td {
-    border-bottom: 2px solid black;
-}
-
-#download-ui {
-    margin-bottom: 16px;
-}
-
-.flash {
-    display: block;
-    background-color: #2fdc2f !important;
-    color: white;
-    font-weight: bold;
-    padding: 12px;
-    border: 1px solid black;
-    border-radius: 8px;
-    margin: 16px;
-}
-
-.error {
-    display: inline-block;
-    color: darkred;
-}
-
-.progress {
-    height: 20px;
-    margin-bottom: 20px;
-    overflow: hidden;
-    background-color: #f5f5f5;
-    border-radius: 4px;
-    box-shadow: inset 0 1px 2px rgba(0, 0, 0, .1);
-}
-
-.progress-bar {
-    float: left;
-    width: 0%;
-    height: 100%;
-    font-size: 12px;
-    line-height: 20px;
-    color: #fff;
-    text-align: center;
-    background-color: #337ab7;
-    -webkit-box-shadow: inset 0 -1px 0 rgba(0, 0, 0, .15);
-    box-shadow: inset 0 -1px 0 rgba(0, 0, 0, .15);
-    -webkit-transition: width .6s ease;
-    -o-transition: width .6s ease;
-    transition: width .6s ease;
-}
-
-[data-overflow-menu] {
-    visibility: hidden;
-}
-
-tr:is(:hover, :focus-within) [data-overflow-menu] {
-    visibility: visible;
+p.tight {
+    margin-bottom: 0;
+    padding-bottom: 0;
 }
