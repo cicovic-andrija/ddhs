@@ -27,7 +27,6 @@ func main() {
 	register(server)
 	errors := make(chan error, 1)
 	interrupts := make(chan os.Signal, 1)
-	InitInMemLog()
 	server.ListenAndServeAsync(errors)
 	signal.Notify(interrupts, os.Interrupt)
 	for {
@@ -43,8 +42,27 @@ func main() {
 	}
 }
 
+func parseArgs() {
+	var (
+		devFlag = flag.Bool("d", false, "dev (local) execution")
+	)
+
+	flag.Parse()
+	config.host = "any"
+	config.port = 443
+	config.logRequests = false
+	if *devFlag {
+		config.host = "localhost"
+		config.port = 8080
+		config.logRequests = true
+	}
+}
+
 func newHTTPSS() *https.HTTPSServer {
 	if err := fs.MkdirIfNotExists("logs"); err != nil {
+		crashEarly("mkdir: %v", err)
+	}
+	if err := fs.MkdirIfNotExists(DataDirectory); err != nil {
 		crashEarly("mkdir: %v", err)
 	}
 
@@ -69,22 +87,6 @@ func newHTTPSS() *https.HTTPSServer {
 	}
 
 	return srv
-}
-
-func parseArgs() {
-	var (
-		devFlag = flag.Bool("d", false, "dev (local) execution")
-	)
-
-	flag.Parse()
-	config.host = "any"
-	config.port = 443
-	config.logRequests = false
-	if *devFlag {
-		config.host = "localhost"
-		config.port = 8080
-		config.logRequests = true
-	}
 }
 
 func traceServerMessage(sev logging.Severity, format string, v ...any) {

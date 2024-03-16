@@ -5,21 +5,53 @@
 <form action="{{ if eq .Dive.Num 0 }}/dives/new{{ else }}/dives/{{ .Dive.ID }}/edit{{ end }}" method="post">
     <fieldset>
         <legend>Dive Data</legend>
+        <!-- Input: Site -->
         <p>
-            <label for="date">Date:</label>
-            <input name="date" id="date" type="date" value="{{ .Dive.Date.Format "2006-01-02" }}">
-            <span class="error">{{ .InputErrors.date }}</span>
-        </p>
-        <p>
-            <label for="site">Site:</label>
+            <label for="site">Site</label>
             <input name="site" id="site" type="text"
-                   hx-get="/actions/validate/site"
-                   hx-target="next .error"
-                   hx-trigger="change, keyup delay:200ms changed"
-                   placeholder="Dive site ..."
-                   value="{{ .Dive.Site }}">
+                    hx-get="/actions/validate/site"
+                    hx-target="next .error"
+                    hx-trigger="change, keyup delay:200ms changed"
+                    placeholder="e.g. Crete, Greece"
+                    value="{{ .Dive.Site }}">
             <span class="error">{{ .InputErrors.site }}</span>
         </p>
+        <!-- Input: Date -->
+        <p>
+            <label for="date">Date{{ if gt .Dive.Num 0 }} <small><em>(immutable)</em></small>{{ end }}</label>
+            <input name="date" id="date" type="date"
+                {{ if gt .Dive.Num 0 }}readonly="true"{{ end }} value="{{ .NormalizedDateValue .Dive.DateTimeIn }}">
+            {{ if eq .Dive.Num 0 }}
+            <span class="error">{{ .InputErrors.date }}</span>
+            {{ end }}
+        </p>
+        <!-- Input: Time In -->
+        <p>
+            <label for="time_in">
+                Time In <small><em>{{ if eq .Dive.Num 0 }}(on-site){{ else }}(immutable){{ end }}</em></small>
+            </label>
+            <input
+                name="time_in" id="time_in" type="time" step="60"
+                {{ if gt .Dive.Num 0 }}readonly="true"{{ end }} value="{{ .Dive.DateTimeIn.Format "15:04" }}">
+            {{ if eq .Dive.Num 0 }}
+            <span class="error">{{ .InputErrors.time_in }}</span>
+            {{ end }}
+        </p>
+        <!-- Input: Duration -->
+        <p>
+            <label for="duration">Duration</label>
+            <input name="duration" id="duration" type="text"
+                   placeholder="e.g. 60">
+            <span><small><em>min. </em></small></span>
+            <span class="error">{{ .InputErrors.duration }}</span>
+        </p>
+        <!-- Time Out -->
+        <p>
+            <label for="time_out">Time Out <small><em>(on-site)</em></small></label>
+            <input name="time_out" id="time_out" type="time" step="60" readonly="true"
+                value="{{ .Dive.TimeOut.Format "15:04" }}">
+        </p>
+
         <button>Save</button>
     </fieldset>
 </form>

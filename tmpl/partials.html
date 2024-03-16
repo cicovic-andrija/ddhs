@@ -23,3 +23,26 @@
 
 </html>
 {{ end }}
+
+<!-- --------------------------------------------------------------------------------------------------------------- -->
+
+{{ define "sync-ui" }}
+<div id="sync-ui" hx-target="this" hx-swap="outerHTML">
+    {{ if eq .State 0 }}
+    <button hx-post="/actions/sync">Sync</button>
+    {{ else if eq .State 1 }}
+    <div hx-get="/actions/sync" hx-trigger="load delay:500ms">
+        Syncing...
+        <div class="progress">
+            <div id="sync-progress" class="progress-bar"
+                style="width:{{ .CompletedPct }}%"
+                role="progressbar"
+                aria-valuenow="{{ .CompletedPct }}">
+            </div>
+        </div>
+    </div>
+    {{ else }}
+    Done!
+    {{ end }}
+</div>
+{{ end }}

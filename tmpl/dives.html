@@ -4,17 +4,17 @@
 
 <form action="/dives" method="get">
     <label for="filter_before">Before:</label>
-    <input id="filter_before" type="date" name="before" value="{{ .BeforeQueryVal }}" />
+    <input id="filter_before" type="date" name="before" value="{{ .NormalizedDateValue .BeforeFilter }}" />
     <label for="filter_after">After:</label>
-    <input id="filter_after" type="date" name="after" value="{{ .AfterQueryVal }}" />
+    <input id="filter_after" type="date" name="after" value="{{ .NormalizedDateValue .AfterFilter }}" />
     <input type="submit" value="Filter" />
 </form>
 
-<p class="tight">
+<p class="p-tight">
     <a href="/dives/new">New Dive</a> |
     <a href="#" hx-get="/dives" hx-target="body" hx-push-url="true">Reset Filters</a>
 </p>
-<p class="tight">Found {{ .Total }} dive records in total:</p>
+<p class="p-tight">Found {{ .Total }} dive records in total:</p>
 
 <form>
     <table>
@@ -22,6 +22,7 @@
             <tr>
                 <th>Dive #</th>
                 <th>Date</th>
+                <th>Time</th>
                 <th>Site</th>
                 <th>Actions</th>
             </tr>
@@ -30,7 +31,8 @@
             {{ range .Dives }}
             <tr>
                 <td>{{ .Num }}</td>
-                <td>{{ .Date.Format "January 2, 2006." }}</td>
+                <td>{{ .DateTimeIn.Format "January 2, 2006." }}</td>
+                <td>{{ .DateTimeIn.Format "15:04" }}</td>
                 <td>{{ .Site }}</td>
                 <td>
                     <a href="/dives/{{ .ID }}">Inspect</a> |
@@ -57,9 +59,9 @@
 </form>
 
 {{ if .Renumbered }}
-<p class="tight">Dives have been <mark>automatically re-numbered</mark> since the last New/Save/Delete operation.</p>
+<p class="p-tight">Dives have been <mark>automatically re-numbered</mark> since the last New/Save/Delete operation.</p>
 {{ end }}
 
-
+{{ template "sync-ui" .SyncJob }}
 
 {{ template "trail" . }}
