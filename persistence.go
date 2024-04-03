@@ -2,18 +2,36 @@ package main
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"os"
 	"path/filepath"
+	"strconv"
+	"strings"
 	"time"
 
 	"github.com/cicovic-andrija/libgo/logging"
 )
 
+// Terminology:
+// mlog - memory log
+// plog - persisted log
+
 const (
 	DataDirectory       = "data"
 	DiveLogFileName     = "divelog.json"
 	TempDiveLogFileName = "divelog.tmp.json"
+
+	LogMajor = 1
+)
+
+var (
+	MLog DiveLog = DiveLog{
+		dives:  make(map[string]*Dive),
+		sorted: make(DiveList, 0),
+	}
+
+	ErrCorruptedLog = errors.New("corrupted log file")
 )
 
 type PersistedDiveLog struct {
@@ -22,12 +40,63 @@ type PersistedDiveLog struct {
 	Dives    DiveList `json:"dives"`
 }
 
-func saveAsync(memlog *DiveLog) {
-	memlog.Lock()
-	if err := memlog.save(); err != nil {
-		traceServerMessage(logging.SevError, "persistence of log sequence %d failed: %v", memlog.sequence, err)
+func ensureDataLoadAsync() {
+	MLog.Lock()
+	if err := MLog.load(); err != nil {
+		crash("load dive data operation failed: %v", err)
 	}
-	memlog.Unlock()
+	MLog.Unlock()
+}
+
+func (mlog *DiveLog) load() error {
+	var (
+		modified time.Time
+		sequence uint64
+	)
+
+	plogFile, err := os.Open(filepath.Join(DataDirectory, DiveLogFileName))
+	if err != nil {
+		return fmt.Errorf("read log operation failed: %v", err)
+	}
+
+	plog := &PersistedDiveLog{}
+	if err = json.NewDecoder(plogFile).Decode(plog); err != nil {
+		return fmt.Errorf("decode log operation failed: %v", err)
+	}
+
+	// First, validate "header".
+	if parts := strings.Split(plog.Version, ":"); len(parts) != 2 {
+		return ErrCorruptedLog
+	} else {
+		if maj, err := strconv.Atoi(parts[0]); err != nil || maj != LogMajor {
+			return ErrCorruptedLog
+		}
+		if seq, err := strconv.Atoi(parts[1]); err != nil {
+			return ErrCorruptedLog
+		} else {
+			sequence = uint64(seq)
+		}
+	}
+	if mod, err := time.Parse(time.RFC3339, plog.Modified); err != nil {
+		return ErrCorruptedLog
+	} else {
+		modified = mod
+	}
+
+	// Second, extract and reconstruct dive data.
+	if err = mlog.Reconstruct(plog.Dives); err == nil {
+		mlog.sequence = sequence + 1
+		mlog.lastPersisted = modified
+	}
+	return err
+}
+
+func saveAsync(mlog *DiveLog) {
+	mlog.Lock()
+	if err := mlog.save(); err != nil {
+		traceServerMessage(logging.SevError, "persistence of log sequence %d failed: %v", mlog.sequence, err)
+	}
+	mlog.Unlock()
 }
 
 func (dl *DiveLog) save() error {
@@ -40,12 +109,12 @@ func (dl *DiveLog) save() error {
 	defer tmpFile.Close()
 
 	modifiedTime := time.Now().UTC()
-	persistedLog := &PersistedDiveLog{
-		Version:  fmt.Sprintf("%d:%d", 1, dl.sequence),
+	plog := &PersistedDiveLog{
+		Version:  fmt.Sprintf("%d:%d", LogMajor, dl.sequence),
 		Modified: modifiedTime.Format(time.RFC3339),
 		Dives:    dl.sorted,
 	}
-	if err = json.NewEncoder(tmpFile).Encode(persistedLog); err != nil {
+	if err = json.NewEncoder(tmpFile).Encode(plog); err != nil {
 		return fmt.Errorf("encode log operation failed: %v", err)
 	}
 	if err = os.Rename(

@@ -25,10 +25,14 @@ func main() {
 	parseArgs()
 	server = newHTTPSS()
 	register(server)
-	errors := make(chan error, 1)
+	go ensureDataLoadAsync()
+
 	interrupts := make(chan os.Signal, 1)
-	server.ListenAndServeAsync(errors)
 	signal.Notify(interrupts, os.Interrupt)
+
+	errors := make(chan error, 1)
+	server.ListenAndServeAsync(errors)
+
 	for {
 		select {
 		case <-interrupts:

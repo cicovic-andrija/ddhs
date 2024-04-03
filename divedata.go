@@ -1,6 +1,8 @@
 package main
 
 import (
+	"fmt"
+	"sort"
 	"sync"
 	"sync/atomic"
 	"time"
@@ -38,7 +40,7 @@ func NewDive() *Dive {
 func (d *Dive) SetDateTimeInAndAssignID(new time.Time) {
 	if d.id == "" {
 		d.DateTimeIn = new
-		d.DateTimeInStr = d.DateTimeIn.Format(time.RFC3339)
+		d.DateTimeInStr = d.DateTimeIn.Format(DateTimeLayout)
 		d.id = d.DateTimeIn.Format(URLFriendlyDateTimeLayout)
 	}
 }
@@ -55,6 +57,17 @@ func (d *Dive) TimeOut() time.Time {
 	return d.DateTimeIn.Add(d.Duration)
 }
 
+// Reconstruct the complete state based on partially initialized set of fields.
+// TODO: Additional validation?
+func (d *Dive) Reconstruct() error {
+	dti, err := time.Parse(DateTimeLayout, d.DateTimeInStr)
+	if err != nil {
+		return fmt.Errorf("invalid date time in: %v", err)
+	}
+	d.SetDateTimeInAndAssignID(dti)
+	return nil
+}
+
 type DiveList []*Dive
 
 func (s DiveList) Filter(predicate func(*Dive) bool) []*Dive {
@@ -67,16 +80,26 @@ func (s DiveList) Filter(predicate func(*Dive) bool) []*Dive {
 	return filtered
 }
 
-// DiveLog doesn't have thread-safe functions, and it has functions that return data pointers.
+// Reconstruct all dives.
+func (s DiveList) Reconstruct() error {
+	for i, d := range s {
+		if err := d.Reconstruct(); err != nil {
+			return generateReconstructionError(err.Error(), fmt.Sprintf("/dives/%d", i))
+		}
+	}
+	return nil
+}
+
+// DiveLog doesn't have thread-safe functions, and defines functions that return data pointers.
 // Callers are responsible for read/write locking.
 type DiveLog struct {
 	sync.RWMutex
 
-	dives         map[string]*Dive
-	sorted        DiveList
-	renumbered    atomic.Bool
-	sequence      uint64
-	lastPersisted time.Time
+	dives         map[string]*Dive //
+	sorted        DiveList         //
+	renumbered    atomic.Bool      //
+	sequence      uint64           // persistence: always one ahead from persistent storage, updated on save
+	lastPersisted time.Time        // persistence: read from persistent storage, updated on save
 }
 
 func (dl *DiveLog) All() DiveList {
@@ -85,6 +108,28 @@ func (dl *DiveLog) All() DiveList {
 
 func (dl *DiveLog) Find(id string) *Dive {
 	return dl.dives[id]
+}
+
+// Reconstruct `dives` from a DiveList. Also, make sure `sorted` is initialized with a sorted copy of the DiveList.
+func (dl *DiveLog) Reconstruct(dives DiveList) error {
+	err := dives.Reconstruct()
+	if err != nil {
+		return err
+	}
+
+	// Ideally, no errors after this point because internal state will be changed.
+
+	sort.Slice(dives, func(i int, j int) bool { return dives[i].DateTimeIn.Before(dives[j].DateTimeIn) })
+	dl.sorted = dives
+
+	for ix, dive := range dl.sorted {
+		dive.ix = ix
+		dl.dives[dive.id] = dive
+	}
+
+	dl.renumbered.Store(false)
+
+	return nil
 }
 
 func (dl *DiveLog) Insert(dive *Dive) {
@@ -106,7 +151,7 @@ func (dl *DiveLog) Insert(dive *Dive) {
 
 func (dl *DiveLog) Replace(existing *Dive, new *Dive) {
 	new.id = existing.id
-	// TODO: figure out a smarter way to do this, including TimeIn
+	// TODO: Figure out a smarter way to do this, including TimeIn.
 	dl.Delete(existing.id)
 	dl.Insert(new)
 }
@@ -138,42 +183,6 @@ func (dl *DiveLog) IsRenumbered() bool {
 	return dl.renumbered.CompareAndSwap(true, false)
 }
 
-var InMemLog DiveLog = DiveLog{
-	dives:  make(map[string]*Dive),
-	sorted: make(DiveList, 0),
+func generateReconstructionError(reason string, hint string) error {
+	return fmt.Errorf("reconstruction failed: %s @ %s", reason, hint)
 }
-
-/*
-func (d *Dive) setDateTimeIn(dti time.Time) {
-	d.DateTimeIn = dti
-	d.id = d.DateTimeIn.Format(DateTimeLayout)
-}
-
-func InitInMemLog() {
-	parseDate := func(str string) time.Time {
-		date, err := time.Parse(DateLayout, str)
-		if err != nil {
-			panic(err)
-		}
-		return date
-	}
-
-	// parseDuration := func(str string) time.Duration {
-	// 	dur, err := time.ParseDuration(str)
-	// 	if err != nil {
-	// 		panic(err)
-	// 	}
-	// 	return dur
-	// }
-
-	d := parseDate("2023-12-01")
-	i := 10
-	for i > 0 {
-		dive := NewDive()
-		dive.Site = "Alif Alif Atoll, Maldives"
-		dive.setDateTimeIn(d.AddDate(0, 0, 51-i))
-		InMemLog.Insert(dive)
-		i--
-	}
-}
-*/

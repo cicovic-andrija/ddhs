@@ -1,5 +1,5 @@
-/* ----------------------------------------- */
-/* Overrides for definitions from Simple.css */
+/* ------------------------------------------ */
+/* Overrides for definitions from Simple.css. */
 
 /* Always use the "light" theme. */
 :root,
@@ -44,7 +44,7 @@ mark {
     color: white;
 }
 
-/* ----------------------------------------- */
+/* ------------------------------------------ */
 /* Custom definitions. */
 
 .error {

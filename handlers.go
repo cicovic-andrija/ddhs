@@ -25,17 +25,18 @@ const (
 
 // TODO: Should be used only when rendering a whole page template
 type Page struct {
-	Title        string
-	BeforeFilter time.Time
-	AfterFilter  time.Time
-	PageFilter   int
-	LastPage     bool
-	InputErrors  map[string]string
-	Dive         *Dive
-	Dives        []*Dive
-	Total        int
-	Renumbered   bool
-	SyncJob      *SyncJob
+	Title           string
+	BeforeFilter    time.Time
+	AfterFilter     time.Time
+	PageFilter      int
+	LastPage        bool
+	InputErrors     map[string]string
+	Dive            *Dive
+	Dives           []*Dive
+	Total           int
+	Renumbered      bool
+	PersistenceInfo string
+	SyncJob         *SyncJob
 }
 
 func (p *Page) NextPage() int {
@@ -77,9 +78,9 @@ func divesHandler(w http.ResponseWriter, r *http.Request) {
 
 	page := &Page{Title: "Dive Log"}
 
-	InMemLog.RLock()
-	defer InMemLog.RUnlock()
-	filtered := InMemLog.All()
+	MLog.RLock()
+	defer MLog.RUnlock()
+	filtered := MLog.All()
 
 	if beforeValue := r.URL.Query().Get(BeforeQueryTag); beforeValue != "" {
 		if beforeDate, err := time.Parse(DateLayout, beforeValue); err == nil {
@@ -95,7 +96,7 @@ func divesHandler(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	if InMemLog.IsRenumbered() {
+	if MLog.IsRenumbered() {
 		page.Renumbered = true
 	}
 
@@ -109,16 +110,17 @@ func divesHandler(w http.ResponseWriter, r *http.Request) {
 
 	page.Dives = filtered
 	page.LastPage = len(filtered) < PageSize // there is an acceptable fencepost error here
+	page.PersistenceInfo = fmt.Sprintf("seq::%d::%s", MLog.sequence, MLog.lastPersisted.Format(time.RFC3339))
 	page.SyncJob = syncJob
 	render("dives.html", w, page)
 }
 
 func diveHandler(w http.ResponseWriter, r *http.Request) {
 	id := r.PathValue(IDTag)
-	InMemLog.RLock()
-	defer InMemLog.RUnlock()
+	MLog.RLock()
+	defer MLog.RUnlock()
 
-	dive := InMemLog.Find(id)
+	dive := MLog.Find(id)
 	if dive == nil {
 		http.NotFound(w, r)
 		return
@@ -134,9 +136,9 @@ func diveHandler(w http.ResponseWriter, r *http.Request) {
 
 func diveRemovalHandler(w http.ResponseWriter, r *http.Request) {
 	id := r.PathValue(IDTag)
-	InMemLog.Lock()
-	defer InMemLog.Unlock()
-	InMemLog.Delete(id)
+	MLog.Lock()
+	defer MLog.Unlock()
+	MLog.Delete(id)
 
 	// TODO: Also check for HX-Request header.
 	if r.Header.Get("HX-Trigger") == "delete-btn" {
@@ -161,24 +163,24 @@ func diveFormHandler(w http.ResponseWriter, r *http.Request) {
 	)
 
 	if id := r.PathValue(IDTag); id != "" { // .../{id}/edit
-		InMemLog.RLock()
-		if existing = InMemLog.Find(id); existing == nil {
-			InMemLog.RUnlock()
+		MLog.RLock()
+		if existing = MLog.Find(id); existing == nil {
+			MLog.RUnlock()
 			http.NotFound(w, r)
 			return
 		}
-		InMemLog.RUnlock()
+		MLog.RUnlock()
 	} // else .../new
 
 	if dive, ok := parseDiveFromRequest(r, page.InputErrors); ok {
 		// TODO: date and time must match between "new" and existing dive
-		InMemLog.Lock()
+		MLog.Lock()
 		if existing != nil {
-			InMemLog.Replace(existing, dive)
+			MLog.Replace(existing, dive)
 		} else {
-			InMemLog.Insert(dive)
+			MLog.Insert(dive)
 		}
-		InMemLog.Unlock()
+		MLog.Unlock()
 		http.Redirect(w, r, "/dives", http.StatusFound)
 	} else { // not ok
 		page.Title = "New Dive"
