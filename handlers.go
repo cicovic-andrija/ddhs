@@ -213,7 +213,7 @@ func parseDiveFromRequest(r *http.Request, errorMap map[string]string) (dive *Di
 	} else {
 		dt = dt.Add(time.Duration(timeIn.Hour())*time.Hour + time.Duration(timeIn.Minute())*time.Minute)
 	}
-	dive.SetDateTimeInAndAssignID(dt)
+	dive.SetDateTimeAndAssignID(dt)
 
 	if site, errMsg := validateDiveSiteInput(r.FormValue(SiteTag)); errMsg != "" {
 		ok = false
@@ -223,6 +223,26 @@ func parseDiveFromRequest(r *http.Request, errorMap map[string]string) (dive *Di
 	}
 
 	return
+}
+
+// HTTPS handler responsible for async. input validation. Returns hypermedia in the response to the client.
+func inputValidationHandler(w http.ResponseWriter, r *http.Request) {
+	var (
+		tag    = r.PathValue("tag")
+		value  = r.URL.Query().Get(tag)
+		errMsg = ""
+	)
+
+	switch tag {
+	case SiteTag:
+		_, errMsg = validateDiveSiteInput(value)
+	case DateTag:
+		_, errMsg = validateDateInput(value)
+	case TimeInTag:
+		_, errMsg = validateTimeInput(value)
+	}
+
+	fmt.Fprintf(w, "%s", errMsg)
 }
 
 func syncHandler(w http.ResponseWriter, r *http.Request) {

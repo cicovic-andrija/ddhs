@@ -41,7 +41,7 @@
         <p>
             <label for="duration">Duration</label>
             <input name="duration" id="duration" type="text"
-                   placeholder="e.g. 60">
+                   placeholder="e.g. 60" value="{{ .Dive.Duration.Minutes }}">
             <span><small><em>min. </em></small></span>
             <span class="error">{{ .InputErrors.duration }}</span>
         </p>

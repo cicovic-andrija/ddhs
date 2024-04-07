@@ -1,7 +1,6 @@
 package main
 
 import (
-	"fmt"
 	"sort"
 	"sync"
 	"sync/atomic"
@@ -22,73 +21,6 @@ const (
 	DateTimeLayout            = "2006-01-02T15:04"
 	URLFriendlyDateTimeLayout = "2006-01-02T15-04"
 )
-
-type Dive struct {
-	id            string
-	ix            int
-	DateTimeIn    time.Time     `json:"-"`
-	DateTimeInStr string        `json:"date_time_in"`
-	Site          string        `json:"site"`
-	Duration      time.Duration `json:"duration"`
-}
-
-// NewDive returns a pointer to a new Dive struct, with all fields initialized to their "zero" or default/invalid value.
-func NewDive() *Dive {
-	return &Dive{ix: InvalidIndex}
-}
-
-func (d *Dive) SetDateTimeInAndAssignID(new time.Time) {
-	if d.id == "" {
-		d.DateTimeIn = new
-		d.DateTimeInStr = d.DateTimeIn.Format(DateTimeLayout)
-		d.id = d.DateTimeIn.Format(URLFriendlyDateTimeLayout)
-	}
-}
-
-func (d *Dive) ID() string {
-	return d.id
-}
-
-func (d *Dive) Num() int {
-	return d.ix + 1
-}
-
-func (d *Dive) TimeOut() time.Time {
-	return d.DateTimeIn.Add(d.Duration)
-}
-
-// Reconstruct the complete state based on partially initialized set of fields.
-// TODO: Additional validation?
-func (d *Dive) Reconstruct() error {
-	dti, err := time.Parse(DateTimeLayout, d.DateTimeInStr)
-	if err != nil {
-		return fmt.Errorf("invalid date time in: %v", err)
-	}
-	d.SetDateTimeInAndAssignID(dti)
-	return nil
-}
-
-type DiveList []*Dive
-
-func (s DiveList) Filter(predicate func(*Dive) bool) []*Dive {
-	filtered := make([]*Dive, 0, len(s))
-	for _, dive := range s {
-		if predicate(dive) {
-			filtered = append(filtered, dive)
-		}
-	}
-	return filtered
-}
-
-// Reconstruct all dives.
-func (s DiveList) Reconstruct() error {
-	for i, d := range s {
-		if err := d.Reconstruct(); err != nil {
-			return generateReconstructionError(err.Error(), fmt.Sprintf("/dives/%d", i))
-		}
-	}
-	return nil
-}
 
 // DiveLog doesn't have thread-safe functions, and defines functions that return data pointers.
 // Callers are responsible for read/write locking.
@@ -181,8 +113,4 @@ func (dl *DiveLog) Delete(id string) (found bool) {
 
 func (dl *DiveLog) IsRenumbered() bool {
 	return dl.renumbered.CompareAndSwap(true, false)
-}
-
-func generateReconstructionError(reason string, hint string) error {
-	return fmt.Errorf("reconstruction failed: %s @ %s", reason, hint)
 }
