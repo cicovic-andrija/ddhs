@@ -25,18 +25,17 @@ const (
 
 // TODO: Should be used only when rendering a whole page template
 type Page struct {
-	Title           string
-	BeforeFilter    time.Time
-	AfterFilter     time.Time
-	PageFilter      int
-	LastPage        bool
-	InputErrors     map[string]string
-	Dive            *Dive
-	Dives           []*Dive
-	Total           int
-	Renumbered      bool
-	PersistenceInfo string
-	SyncJob         *SyncJob
+	Title        string
+	BeforeFilter time.Time
+	AfterFilter  time.Time
+	PageFilter   int
+	LastPage     bool
+	InputErrors  map[string]string
+	Dive         *Dive
+	Dives        []*Dive
+	Total        int
+	Renumbered   bool
+	SyncJob      *SyncJob
 }
 
 func (p *Page) NextPage() int {
@@ -110,7 +109,6 @@ func divesHandler(w http.ResponseWriter, r *http.Request) {
 
 	page.Dives = filtered
 	page.LastPage = len(filtered) < PageSize // there is an acceptable fencepost error here
-	page.PersistenceInfo = fmt.Sprintf("seq::%d::%s", MLog.sequence, MLog.lastPersisted.Format(time.RFC3339))
 	page.SyncJob = syncJob
 	render("dives.html", w, page)
 }
@@ -235,6 +233,13 @@ func parseDiveFromRequest(r *http.Request, errorMap map[string]string) (dive *Di
 		diveRecord.Duration = Duration{Duration: d}
 	}
 
+	if geo, errMsg := validateNonEmptyString(r.FormValue(GeoTag)); errMsg != "" {
+		ok = false
+		errorMap[GeoTag] = errMsg
+	} else {
+		diveRecord.Geo = geo
+	}
+
 	return
 }
 
@@ -255,6 +260,8 @@ func inputValidationHandler(w http.ResponseWriter, r *http.Request) {
 		_, errMsg = validateTimeInput(value)
 	case DurationTag:
 		_, errMsg = validateDurationInMinInput(value)
+	case GeoTag:
+		_, errMsg = validateNonEmptyString(value)
 	}
 
 	fmt.Fprintf(w, "%s", errMsg)

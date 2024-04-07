@@ -12,9 +12,20 @@
                     hx-get="/actions/validate/site"
                     hx-target="next .error"
                     hx-trigger="change, keyup delay:200ms changed"
-                    placeholder="e.g. Crete, Greece"
+                    placeholder="e.g. Manta Point"
                     value="{{ .Dive.Data.Site }}">
             <span class="error">{{ .InputErrors.site }}</span>
+        </p>
+        <!-- Input: Geo -->
+        <p>
+            <label for="geo">Geo. Location</label>
+            <input name="geo" id="geo" type="text"
+                    hx-get="/actions/validate/geo"
+                    hx-target="next .error"
+                    hx-trigger="change, keyup delay:200ms changed"
+                    placeholder="e.g. Nusa Penida, Bali"
+                    value="{{ .Dive.Data.Geo }}">
+            <span class="error">{{ .InputErrors.geo }}</span>
         </p>
         <!-- Input: Date -->
         <p>
@@ -58,7 +69,7 @@
                 value="{{ .Dive.TimeOut.Format "15:04" }}">
         </p>
 
-        <button>Save</button>
+        <button>Save</button> <!-- TODO: Save with empty date fails to load a page. -->
     </fieldset>
 </form>
 

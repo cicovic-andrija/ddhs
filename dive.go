@@ -61,3 +61,12 @@ func (d *Dive) Num() int {
 func (d *Dive) TimeOut() time.Time {
 	return d.DateTimeIn.Add(d.Data.Duration.Value())
 }
+
+// Site returns the dive site name and geographic location (if possible).
+func (d *Dive) Site() string {
+	if d.Data.Geo != "" {
+		return d.Data.Site + " (" + d.Data.Geo + ")"
+	} else {
+		return d.Data.Site
+	}
+}

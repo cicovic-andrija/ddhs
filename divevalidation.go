@@ -9,6 +9,13 @@ import (
 // Error messages returned by validation functions defined below are client-facing.
 //
 
+func validateNonEmptyString(input string) (trimmed string, errMsg string) {
+	if trimmed = strings.TrimSpace(input); trimmed == "" {
+		errMsg = "Please provide a non-empty value."
+	}
+	return
+}
+
 func validateDateInput(dateStr string) (date time.Time, errMsg string) {
 	date, err := time.Parse(DateLayout, dateStr)
 	if err != nil {

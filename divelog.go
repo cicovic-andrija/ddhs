@@ -16,6 +16,7 @@ const (
 	DateTag     = "date"
 	TimeInTag   = "time_in"
 	DurationTag = "duration"
+	GeoTag      = "geo"
 
 	TimeLayout                = "15:04"
 	DateLayout                = "2006-01-02"
