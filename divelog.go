@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"sort"
 	"sync"
 	"sync/atomic"
@@ -43,10 +44,14 @@ func (dl *DiveLog) Find(id string) *Dive {
 }
 
 // Reconstruct `dives` from a DiveList. Also, make sure `sorted` is initialized with a sorted copy of the DiveList.
-func (dl *DiveLog) Reconstruct(dives DiveList) error {
-	err := dives.Reconstruct()
-	if err != nil {
-		return err
+func (dl *DiveLog) Reconstruct(diveRecords []*DiveRecord) error {
+	dives := make(DiveList, 0, len(diveRecords))
+	for i, diveRecord := range diveRecords {
+		if dive, err := EmptyDive().reconstructFrom(diveRecord); err != nil {
+			return fmt.Errorf("reconstruction failed: %v @ %s", err, fmt.Sprintf("/dives/%d", i))
+		} else {
+			dives = append(dives, dive)
+		}
 	}
 
 	// Ideally, no errors after this point because internal state will be changed.

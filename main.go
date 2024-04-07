@@ -17,36 +17,33 @@ var (
 		port        int
 		logRequests bool
 	}
-
-	server *https.HTTPSServer
 )
 
 func main() {
-	parseArgs()
+	// Initialize.
+	parseArgv()
 	server = newHTTPSS()
 	register(server)
 	go ensureDataLoadAsync()
 
+	// Ctrl-C handler.
 	interrupts := make(chan os.Signal, 1)
 	signal.Notify(interrupts, os.Interrupt)
 
+	// Start listening.
 	errors := make(chan error, 1)
 	server.ListenAndServeAsync(errors)
 
-	for {
-		select {
-		case <-interrupts:
-			if err := server.Shutdown(); err != nil {
-				crash("failure during server shutdown: %v", err)
-			}
-			os.Exit(0)
-		case err := <-errors:
-			crash("critical server failure: %v", err)
-		}
+	// Halt the main thread until interrupt or unexpected failure.
+	select {
+	case <-interrupts:
+		shutdown()
+	case err := <-errors:
+		crash("critical server failure: %v", err)
 	}
 }
 
-func parseArgs() {
+func parseArgv() {
 	var (
 		devFlag = flag.Bool("d", false, "dev (local) execution")
 	)
@@ -63,11 +60,11 @@ func parseArgs() {
 }
 
 func newHTTPSS() *https.HTTPSServer {
-	if err := fs.MkdirIfNotExists("logs"); err != nil {
-		crashEarly("mkdir: %v", err)
-	}
-	if err := fs.MkdirIfNotExists(DataDirectory); err != nil {
-		crashEarly("mkdir: %v", err)
+	const LogsDirectory = "logs"
+	for _, dir := range []string{LogsDirectory, DataDirectory} {
+		if err := fs.MkdirIfNotExists(dir); err != nil {
+			crashEarly("mkdir: %v", err)
+		}
 	}
 
 	srv, err := https.NewServer(&https.Config{
@@ -81,26 +78,16 @@ func newHTTPSS() *https.HTTPSServer {
 			Enabled:   true,
 			URLPrefix: "/static/",
 			Directory: "static",
-			Allowed:   []string{"site.css"},
+			Allowed:   []string{"site.css", "simple2.3.0.min.css"},
 		},
 		LogRequests:   config.logRequests,
-		LogsDirectory: "logs",
+		LogsDirectory: LogsDirectory,
 	})
 	if err != nil {
 		crashEarly("https: %v", err)
 	}
 
 	return srv
-}
-
-func traceServerMessage(sev logging.Severity, format string, v ...any) {
-	server.GetLogger().Output(sev, 2, format, v...)
-}
-
-func crash(format string, v ...any) {
-	err := fmt.Errorf(format, v...)
-	traceServerMessage(logging.SevError, err.Error())
-	panic(err)
 }
 
 func crashEarly(format string, v ...any) {

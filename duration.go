@@ -8,6 +8,7 @@ import (
 
 var ErrInvalidDuration = errors.New("invalid duration value")
 
+// Duration is a time.Duration wrapper that can be marshalled (unmarshalled) to (from) JSON.
 type Duration struct {
 	time.Duration
 }

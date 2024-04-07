@@ -2,3 +2,6 @@ logs/
 local_assets/
 out
 ddhs
+
+static/
+!static/site.css

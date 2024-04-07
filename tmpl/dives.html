@@ -7,16 +7,13 @@
     <input id="filter_before" type="date" name="before" value="{{ .NormalizedDateValue .BeforeFilter }}" />
     <label for="filter_after">After:</label>
     <input id="filter_after" type="date" name="after" value="{{ .NormalizedDateValue .AfterFilter }}" />
-    <input type="submit" value="Filter" />
+    <div><input type="submit" value="Filter" /></div>
 </form>
 
-<p class="p-tight">
-    <a href="/dives/new">New Dive</a> |
-    <a href="#" hx-get="/dives" hx-target="body" hx-push-url="true">Reset Filters</a>
-</p>
 <p class="p-tight">Found {{ .Total }} dive records in total:</p>
 
 <form>
+    <figure> <!-- CSS library provides a horizontal scroller through this element. -->
     <table>
         <thead>
             <tr>
@@ -33,7 +30,7 @@
                 <td>{{ .Num }}</td>
                 <td>{{ .DateTimeIn.Format "January 2, 2006." }}</td>
                 <td>{{ .DateTimeIn.Format "15:04" }}</td>
-                <td>{{ .Site }}</td>
+                <td>{{ .Data.Site }}</td>
                 <td>
                     <a href="/dives/{{ .ID }}">Inspect</a> |
                     <a href="#"
@@ -56,14 +53,16 @@
             {{ end }}
         </tbody>
     </table>
+    </figure>
 </form>
 
 {{ if .Renumbered }}
-<p class="p-tight">Dives have been <mark>automatically re-numbered</mark> since the last New/Save/Delete operation.</p>
+<small><em>Dives have been <mark>automatically re-numbered</mark> since the last New/Save/Delete operation.</em></small>
 {{ end }}
 
-{{ template "sync-ui" .SyncJob }}
-
-<p class="p-tight">Persistence Stamp: {{ .PersistenceInfo }}.</p>
+<p class="p-tight">
+    <a class="button" href="/dives/new">New Dive</a>
+    <a class="button" href="#" hx-get="/dives" hx-target="body" hx-push-url="true">Reset Filters</a>
+</p>
 
 {{ template "trail" . }}

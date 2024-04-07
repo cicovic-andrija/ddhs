@@ -151,7 +151,7 @@ func diveRemovalHandler(w http.ResponseWriter, r *http.Request) {
 func newDiveHandler(w http.ResponseWriter, r *http.Request) {
 	page := &Page{
 		Title: "New Dive",
-		Dive:  NewDive(),
+		Dive:  EmptyDive(),
 	}
 	render("dive.html", w, page)
 }
@@ -173,7 +173,7 @@ func diveFormHandler(w http.ResponseWriter, r *http.Request) {
 	} // else .../new
 
 	if dive, ok := parseDiveFromRequest(r, page.InputErrors); ok {
-		// TODO: date and time must match between "new" and existing dive
+		// TODO: Date and time must match between "new" and existing dive.
 		MLog.Lock()
 		if existing != nil {
 			MLog.Replace(existing, dive)
@@ -190,36 +190,49 @@ func diveFormHandler(w http.ResponseWriter, r *http.Request) {
 		} else {
 			page.Dive = dive
 		}
-		// TODO: Should response code be changed here?
 		render("dive.html", w, page)
 	}
 }
 
 func parseDiveFromRequest(r *http.Request, errorMap map[string]string) (dive *Dive, ok bool) {
-	ok = true
-	dive = NewDive()
-	dt := dive.DateTimeIn // dt must be initialized to "zero" date/time, so copy from a new "zero" dive
+	var (
+		dt         time.Time
+		diveRecord *DiveRecord
+	)
 
-	// Date and time in are parsed first, so the ID of the dive can be generated.
+	ok = true
+
+	// Date and time in are parsed first, so a dive object can be initialized.
 	if date, errMsg := validateDateInput(r.FormValue(DateTag)); errMsg != "" {
 		ok = false
 		errorMap[DateTag] = errMsg
+		return
 	} else {
 		dt = date
 	}
 	if timeIn, errMsg := validateTimeInput(r.FormValue(TimeInTag)); errMsg != "" {
 		ok = false
 		errorMap[TimeInTag] = errMsg
+		return
 	} else {
 		dt = dt.Add(time.Duration(timeIn.Hour())*time.Hour + time.Duration(timeIn.Minute())*time.Minute)
 	}
-	dive.SetDateTimeAndAssignID(dt)
+
+	dive = NewDive(dt)
+	diveRecord = dive.Data
 
 	if site, errMsg := validateDiveSiteInput(r.FormValue(SiteTag)); errMsg != "" {
 		ok = false
 		errorMap[SiteTag] = errMsg
 	} else {
-		dive.Site = site
+		diveRecord.Site = site
+	}
+
+	if d, errMsg := validateDurationInMinInput(r.FormValue(DurationTag)); errMsg != "" {
+		ok = false
+		errorMap[DurationTag] = errMsg
+	} else {
+		diveRecord.Duration = Duration{Duration: d}
 	}
 
 	return
@@ -240,6 +253,8 @@ func inputValidationHandler(w http.ResponseWriter, r *http.Request) {
 		_, errMsg = validateDateInput(value)
 	case TimeInTag:
 		_, errMsg = validateTimeInput(value)
+	case DurationTag:
+		_, errMsg = validateDurationInMinInput(value)
 	}
 
 	fmt.Fprintf(w, "%s", errMsg)
@@ -254,19 +269,15 @@ func syncHandler(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func dateToStr(d time.Time) string {
-	return d.Format(DateLayout)
-}
-
 func render(tmplName string, w http.ResponseWriter, data any) {
 	tmpl, err := template.ParseFiles(filepath.Join(TmplDir, tmplName), filepath.Join(TmplDir, "partials.html"))
 	if err != nil {
-		traceServerMessage(logging.SevError, "%v", err)
+		trace(logging.SevError, "%v", err)
 		w.WriteHeader(http.StatusInternalServerError)
 		return
 	}
 	if err := tmpl.Execute(w, data); err != nil {
-		traceServerMessage(logging.SevError, "%v", err)
+		trace(logging.SevError, "%v", err)
 		w.WriteHeader(http.StatusInternalServerError)
 		return
 	}
@@ -275,80 +286,17 @@ func render(tmplName string, w http.ResponseWriter, data any) {
 func partialRender(tmplName string, w http.ResponseWriter, data any) {
 	partials, err := template.ParseFiles(filepath.Join(TmplDir, "partials.html"))
 	if err != nil {
-		traceServerMessage(logging.SevError, "%v", err)
+		trace(logging.SevError, "%v", err)
 		w.WriteHeader(http.StatusInternalServerError)
 		return
 	}
 	if err := partials.ExecuteTemplate(w, tmplName, data); err != nil {
-		traceServerMessage(logging.SevError, "%v", err)
+		trace(logging.SevError, "%v", err)
 		w.WriteHeader(http.StatusInternalServerError)
 		return
 	}
 }
 
-type HandlerMux interface {
-	Handle(pattern string, handler http.Handler)
-}
-
-func register(mux HandlerMux) HandlerMux {
-	if mux == nil {
-		return nil
-	}
-
-	mux.Handle(
-		"GET /{$}",
-		http.HandlerFunc(rootHandler),
-	)
-
-	mux.Handle(
-		"GET /dives",
-		http.HandlerFunc(divesHandler),
-	)
-
-	mux.Handle(
-		"GET /dives/{$}",
-		http.HandlerFunc(divesHandler),
-	)
-
-	mux.Handle(
-		"GET /dives/{id}",
-		http.HandlerFunc(diveHandler),
-	)
-
-	mux.Handle(
-		"POST /dives/{id}/edit",
-		http.HandlerFunc(diveFormHandler),
-	)
-
-	mux.Handle(
-		"DELETE /dives/{id}",
-		http.HandlerFunc(diveRemovalHandler),
-	)
-
-	mux.Handle(
-		"GET /dives/new",
-		http.HandlerFunc(newDiveHandler),
-	)
-
-	mux.Handle(
-		"POST /dives/new",
-		http.HandlerFunc(diveFormHandler),
-	)
-
-	mux.Handle(
-		"GET /actions/validate/{tag}",
-		http.HandlerFunc(inputValidationHandler),
-	)
-
-	mux.Handle(
-		"POST /actions/sync",
-		http.HandlerFunc(syncHandler),
-	)
-
-	mux.Handle(
-		"GET /actions/sync",
-		http.HandlerFunc(syncHandler),
-	)
-
-	return mux
+func dateToStr(d time.Time) string {
+	return d.Format(DateLayout)
 }

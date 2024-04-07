@@ -7,27 +7,44 @@ import (
 
 // Dive is an in-memory model of a single dive.
 type Dive struct {
-	id            string
-	ix            int
-	Data          *DiveRecord
-	DateTimeIn    time.Time `json:"-"`
-	DateTimeInStr string    `json:"date_time_in"`
-	Site          string    `json:"site"`
-	Duration      Duration  `json:"duration"`
+	id         string
+	ix         int
+	DateTimeIn time.Time
+	Data       *DiveRecord
 }
 
-// NewDive returns a new, empty model, with all fields initialized to their "zero" or default/invalid value.
-func NewDive() *Dive {
-	return &Dive{ix: InvalidIndex}
-}
-
-// SetDateTimeAndAssignID must be used once to assign an ID (derived from the dive date and time) to a new model.
-func (d *Dive) SetDateTimeAndAssignID(new time.Time) {
-	if d.id == "" {
-		d.DateTimeIn = new
-		d.DateTimeInStr = d.DateTimeIn.Format(DateTimeLayout)
-		d.id = d.DateTimeIn.Format(URLFriendlyDateTimeLayout)
+// NewDive returns a new, initialized model, with non-ID fields initialized to their "zero"/default/invalid value.
+func NewDive(dt time.Time) *Dive {
+	return &Dive{
+		id:         dt.Format(URLFriendlyDateTimeLayout),
+		ix:         InvalidIndex,
+		DateTimeIn: dt,
+		Data: &DiveRecord{
+			DateTime: dt.Format(DateTimeLayout),
+		},
 	}
+}
+
+// EmptyDive returns a new, empty model, with all fields initialized to their "zero"/default/invalid value.
+func EmptyDive() *Dive {
+	return &Dive{
+		ix:   InvalidIndex,
+		Data: &DiveRecord{},
+	}
+}
+
+// ReconstructFrom initializes and empty
+func (d *Dive) reconstructFrom(diveRecord *DiveRecord) (*Dive, error) {
+	dt, err := time.Parse(DateTimeLayout, diveRecord.DateTime)
+	if err != nil {
+		return nil, fmt.Errorf("invalid date/time: %v", err)
+	}
+
+	d.id = dt.Format(URLFriendlyDateTimeLayout)
+	d.ix = InvalidIndex
+	d.DateTimeIn = dt
+	d.Data = diveRecord
+	return d, nil
 }
 
 // ID returns the ID of the dive.
@@ -42,16 +59,5 @@ func (d *Dive) Num() int {
 
 // TimeOut returns the calculated date and time of the end of the dive.
 func (d *Dive) TimeOut() time.Time {
-	return d.DateTimeIn.Add(d.Duration.Value())
-}
-
-// Reconstruct the complete state based on partially initialized set of fields.
-// TODO: Additional validation?
-func (d *Dive) Reconstruct() error {
-	dti, err := time.Parse(DateTimeLayout, d.DateTimeInStr)
-	if err != nil {
-		return fmt.Errorf("invalid date time in: %v", err)
-	}
-	d.SetDateTimeAndAssignID(dti)
-	return nil
+	return d.DateTimeIn.Add(d.Data.Duration.Value())
 }

@@ -25,19 +25,17 @@ const (
 	LogMajor = 1
 )
 
-var (
-	MLog DiveLog = DiveLog{
-		dives:  make(map[string]*Dive),
-		sorted: make(DiveList, 0),
-	}
+var ErrCorruptedLog = errors.New("corrupted log file")
 
-	ErrCorruptedLog = errors.New("corrupted log file")
-)
+var MLog DiveLog = DiveLog{
+	dives:  make(map[string]*Dive),
+	sorted: make(DiveList, 0),
+}
 
 type PersistedDiveLog struct {
-	Version  string   `json:"version"`
-	Modified string   `json:"modified"`
-	Dives    DiveList `json:"dives"`
+	Version  string        `json:"version"`
+	Modified string        `json:"modified"`
+	Dives    []*DiveRecord `json:"dives"`
 }
 
 func ensureDataLoadAsync() {
@@ -64,7 +62,7 @@ func (mlog *DiveLog) load() error {
 		return fmt.Errorf("decode log operation failed: %v", err)
 	}
 
-	// First, validate "header".
+	// First, validate the "header".
 	if parts := strings.Split(plog.Version, ":"); len(parts) != 2 {
 		return ErrCorruptedLog
 	} else {
@@ -94,7 +92,7 @@ func (mlog *DiveLog) load() error {
 func saveAsync(mlog *DiveLog) {
 	mlog.Lock()
 	if err := mlog.save(); err != nil {
-		traceServerMessage(logging.SevError, "persistence of log sequence %d failed: %v", mlog.sequence, err)
+		trace(logging.SevError, "persistence of log sequence %d failed: %v", mlog.sequence, err)
 	}
 	mlog.Unlock()
 }
@@ -108,11 +106,15 @@ func (dl *DiveLog) save() error {
 	defer os.Remove(TempDiveLogFileName)
 	defer tmpFile.Close()
 
+	diveRecords := make([]*DiveRecord, 0, len(dl.sorted))
+	for _, dive := range dl.sorted {
+		diveRecords = append(diveRecords, dive.Data)
+	}
 	modifiedTime := time.Now().UTC()
 	plog := &PersistedDiveLog{
 		Version:  fmt.Sprintf("%d:%d", LogMajor, dl.sequence),
 		Modified: modifiedTime.Format(time.RFC3339),
-		Dives:    dl.sorted,
+		Dives:    diveRecords,
 	}
 	if err = json.NewEncoder(tmpFile).Encode(plog); err != nil {
 		return fmt.Errorf("encode log operation failed: %v", err)
