@@ -187,6 +187,10 @@ func diveFormHandler(w http.ResponseWriter, r *http.Request) {
 			page.Dive = existing
 		} else {
 			page.Dive = dive
+			if dive == nil {
+				dive = EmptyDive()
+			}
+			page.Dive = dive
 		}
 		render("dive.html", w, page)
 	}
@@ -204,19 +208,17 @@ func parseDiveFromRequest(r *http.Request, errorMap map[string]string) (dive *Di
 	if date, errMsg := validateDateInput(r.FormValue(DateTag)); errMsg != "" {
 		ok = false
 		errorMap[DateTag] = errMsg
-		return
 	} else {
 		dt = date
 	}
 	if timeIn, errMsg := validateTimeInput(r.FormValue(TimeInTag)); errMsg != "" {
 		ok = false
 		errorMap[TimeInTag] = errMsg
-		return
 	} else {
 		dt = dt.Add(time.Duration(timeIn.Hour())*time.Hour + time.Duration(timeIn.Minute())*time.Minute)
 	}
 
-	dive = NewDive(dt)
+	dive = NewDive(dt) // this is fine even if ok == false at this point, collect other errors if any
 	diveRecord = dive.Data
 
 	if site, errMsg := validateDiveSiteInput(r.FormValue(SiteTag)); errMsg != "" {
@@ -233,12 +235,9 @@ func parseDiveFromRequest(r *http.Request, errorMap map[string]string) (dive *Di
 		diveRecord.Duration = Duration{Duration: d}
 	}
 
-	if geo, errMsg := validateNonEmptyString(r.FormValue(GeoTag)); errMsg != "" {
-		ok = false
-		errorMap[GeoTag] = errMsg
-	} else {
-		diveRecord.Geo = geo
-	}
+	// Optional parameter: accept even an empty value after input is trimmed.
+	diveRecord.Geo, _ = validateNonEmptyString(r.FormValue(GeoTag))
+	diveRecord.DecoDive = r.FormValue(DecoDiveTag) == "true"
 
 	return
 }
@@ -261,7 +260,9 @@ func inputValidationHandler(w http.ResponseWriter, r *http.Request) {
 	case DurationTag:
 		_, errMsg = validateDurationInMinInput(value)
 	case GeoTag:
-		_, errMsg = validateNonEmptyString(value)
+		if value != "" { // optional, so empty value is not an error
+			_, errMsg = validateNonEmptyString(value)
+		}
 	}
 
 	fmt.Fprintf(w, "%s", errMsg)

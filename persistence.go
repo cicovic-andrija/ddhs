@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"io"
 	"os"
 	"path/filepath"
 	"strconv"
@@ -42,6 +43,8 @@ func ensureDataLoadAsync() {
 	MLog.Lock()
 	if err := MLog.load(); err != nil {
 		crash("load dive data operation failed: %v", err)
+	} else {
+		trace(logging.SevInfo, "successfully loaded dive data (sequence %d)", MLog.sequence)
 	}
 	MLog.Unlock()
 }
@@ -89,12 +92,14 @@ func (mlog *DiveLog) load() error {
 	return err
 }
 
-func saveAsync(mlog *DiveLog) {
-	mlog.Lock()
-	if err := mlog.save(); err != nil {
-		trace(logging.SevError, "persistence of log sequence %d failed: %v", mlog.sequence, err)
+func saveAsync() {
+	MLog.Lock()
+	if err := MLog.save(); err != nil {
+		trace(logging.SevError, "persistence of dive log sequence %d failed: %v", MLog.sequence, err)
+	} else {
+		trace(logging.SevInfo, "successfully persisted dive log sequence %d", MLog.sequence-1)
 	}
-	mlog.Unlock()
+	MLog.Unlock()
 }
 
 func (dl *DiveLog) save() error {
@@ -116,7 +121,7 @@ func (dl *DiveLog) save() error {
 		Modified: modifiedTime.Format(time.RFC3339),
 		Dives:    diveRecords,
 	}
-	if err = json.NewEncoder(tmpFile).Encode(plog); err != nil {
+	if err = NewEncoder(tmpFile).Encode(plog); err != nil {
 		return fmt.Errorf("encode log operation failed: %v", err)
 	}
 	if err = os.Rename(
@@ -129,4 +134,10 @@ func (dl *DiveLog) save() error {
 	dl.sequence++
 	dl.lastPersisted = modifiedTime
 	return nil
+}
+
+func NewEncoder(w io.Writer) (encoder *json.Encoder) {
+	encoder = json.NewEncoder(w)
+	encoder.SetIndent("", "    ")
+	return
 }

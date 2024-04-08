@@ -17,6 +17,7 @@ const (
 	TimeInTag   = "time_in"
 	DurationTag = "duration"
 	GeoTag      = "geo"
+	DecoDiveTag = "deco_dive"
 
 	TimeLayout                = "15:04"
 	DateLayout                = "2006-01-02"
@@ -85,6 +86,8 @@ func (dl *DiveLog) Insert(dive *Dive) {
 	if dive.ix < len(dl.sorted)-1 {
 		dl.renumbered.Store(true)
 	}
+
+	go saveAsync()
 }
 
 func (dl *DiveLog) Replace(existing *Dive, new *Dive) {
@@ -113,7 +116,6 @@ func (dl *DiveLog) Delete(id string) (found bool) {
 		dl.renumbered.Store(true)
 	}
 	dl.sorted = dl.sorted[:len(dl.sorted)-1]
-
 	return
 }
 

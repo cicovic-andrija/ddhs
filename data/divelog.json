@@ -1,12 +1,13 @@
 {
-    "version": "1:1",
-    "modified": "2024-04-03T22:07:00Z",
+    "version": "1:4",
+    "modified": "2024-04-08T19:50:01Z",
     "dives": [
         {
             "date_time": "2022-06-11T12:00",
+            "duration": "24m0s",
             "site": "Ada Ciganlija",
-            "geo": "Belgrade, Serbia",
-            "duration": "24m"
+            "deco_dive": false,
+            "geo": "Belgrade, Serbia"
         }
     ]
 }

@@ -68,8 +68,20 @@
             <input name="time_out" id="time_out" type="time" step="60" readonly="true"
                 value="{{ .Dive.TimeOut.Format "15:04" }}">
         </p>
+        <!-- Input: Deco Dive -->
+        <div>
+            <label for="deco_dive_block">Deco. Dive</label>
+            <fieldset id="deco_dive_block" style="display: inline-block">
+                <span>
+                    <label style="display: inline-block" for="deco_dive_yes">Yes</label>
+                    <input name="deco_dive" id="deco_dive_yes" type="radio" value="true" {{ if .Dive.Data.DecoDive }}checked{{ end }}>
+                    <label style="display: inline-block" for="deco_dive_no">No</label>
+                    <input name="deco_dive" id="deco_dive_no" type="radio" value="false" {{ if not .Dive.Data.DecoDive }}checked{{ end }}>
+                </span>
+            </fieldset>
+        </div>
 
-        <button>Save</button> <!-- TODO: Save with empty date fails to load a page. -->
+        <button>Save</button>
     </fieldset>
 </form>
 
