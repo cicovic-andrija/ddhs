@@ -9,20 +9,20 @@ type DiveRecord struct {
 	Duration Duration `json:"duration"`  //
 	Site     string   `json:"site"`      //
 
-	// AirTemp           float32 `json:"air_temp"`            // optional fields
+	Geo      string  `json:"geo,omitempty"`       // optional fields
+	MaxDepth float32 `json:"max_depth,omitempty"` //
+	AvgDepth float32 `json:"avg_depth,omitempty"` //
+	DecoDive bool    `json:"deco_dive"`           // flags should be explicit, so no omitempty
+
+	// AirTemp           float32 `json:"air_temp"`            //
 	// Altitude          uint    `json:"altitude"`            //
-	// AvgDepth          float32 `json:"avg_depth"`           //
 	// BodyOfWater       string  `json:"body_of_water"`       //
 	// CNSEnd            uint    `json:"cns_end"`             //
 	// CNSStart          uint    `json:"cns_start"`           //
 	// Current           string  `json:"current"`             //
-	// DecoAlgFactor     string  `json:"deco_alg_factor"`     //
-	DecoDive bool `json:"deco_dive"` //
 	// DiveComputer      string  `json:"dive_computer"`       //
 	// Entry             string  `json:"entry"`               //
 	// Gas               string  `json:"gas"`                 //
-	Geo string `json:"geo"` //
-	// MaxDepth          float32 `json:"max_depth"`           //
 	// NightDive         bool    `json:"night_dive"`          //
 	// Note              string  `json:"note"`                //
 	// O2                uint    `json:"o2"`                  //

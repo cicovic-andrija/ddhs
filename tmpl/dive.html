@@ -6,7 +6,7 @@
     <fieldset>
         <legend>Dive Data</legend>
         <!-- Input: Site -->
-        <p>
+        <div>
             <label for="site">Site</label>
             <input name="site" id="site" type="text"
                     hx-get="/actions/validate/site"
@@ -15,9 +15,9 @@
                     placeholder="e.g. Manta Point"
                     value="{{ .Dive.Data.Site }}">
             <span class="error">{{ .InputErrors.site }}</span>
-        </p>
+        </div>
         <!-- Input: Geo -->
-        <p>
+        <div>
             <label for="geo">Geo. Location</label>
             <input name="geo" id="geo" type="text"
                     hx-get="/actions/validate/geo"
@@ -26,9 +26,9 @@
                     placeholder="e.g. Nusa Penida, Bali"
                     value="{{ .Dive.Data.Geo }}">
             <span class="error">{{ .InputErrors.geo }}</span>
-        </p>
+        </div>
         <!-- Input: Date -->
-        <p>
+        <div>
             <label for="date">Date{{ if gt .Dive.Num 0 }} <small><em>(immutable)</em></small>{{ end }}</label>
             <input name="date" id="date" type="date"
                 hx-get="/actions/validate/date"
@@ -38,9 +38,9 @@
             {{ if eq .Dive.Num 0 }}
             <span class="error">{{ .InputErrors.date }}</span>
             {{ end }}
-        </p>
+        </div>
         <!-- Input: Time In -->
-        <p>
+        <div>
             <label for="time_in">
                 Time In <small><em>{{ if eq .Dive.Num 0 }}(on-site){{ else }}(immutable){{ end }}</em></small>
             </label>
@@ -50,24 +50,46 @@
             {{ if eq .Dive.Num 0 }}
             <span class="error">{{ .InputErrors.time_in }}</span>
             {{ end }}
-        </p>
+        </div>
         <!-- Input: Duration -->
-        <p>
+        <div>
             <label for="duration">Duration</label>
             <input name="duration" id="duration" type="text"
                    hx-get="/actions/validate/duration"
                    hx-target="next .error"
                    hx-trigger="change, keyup delay:200ms changed"
-                   placeholder="e.g. 60" value="{{ .Dive.Data.Duration.Minutes }}">
+                   placeholder="e.g. 60" value="{{ if .Dive.Data.Duration.Minutes }}{{ .Dive.Data.Duration.Minutes }}{{ end }}">
             <span><small><em>min. </em></small></span>
             <span class="error">{{ .InputErrors.duration }}</span>
-        </p>
+        </div>
         <!-- Time Out -->
-        <p>
+        <div>
             <label for="time_out">Time Out <small><em>(on-site)</em></small></label>
             <input name="time_out" id="time_out" type="time" step="60" readonly="true"
                 value="{{ .Dive.TimeOut.Format "15:04" }}">
-        </p>
+        </div>
+        <!-- Input: Max Depth -->
+        <div>
+            <label for="max_depth">Maximum Depth</label>
+            <input name="max_depth" id="max_depth" type="text"
+                   hx-get="/actions/validate/max_depth"
+                   hx-target="next .error"
+                   hx-trigger="change, keyup delay:200ms changed"
+                   placeholder="e.g. 21.5" value="{{ if .Dive.Data.MaxDepth }}{{ .Dive.Data.MaxDepth }}{{ end }}">
+            <span><small><em>m </em></small></span>
+            <span class="error">{{ .InputErrors.max_depth }}</span>
+        </div>
+        <!-- Input: Avg Depth -->
+        <div>
+            <label for="avg_depth">Average Depth</label>
+            <input name="avg_depth" id="avg_depth" type="text"
+                   hx-get="/actions/validate/avg_depth"
+                   hx-target="next .error"
+                   hx-trigger="change, keyup delay:200ms changed"
+                   placeholder="e.g. 15.5" value="{{ if .Dive.Data.AvgDepth }}{{ .Dive.Data.AvgDepth }}{{ end }}">
+            <span><small><em>m </em></small></span>
+            <span class="error">{{ .InputErrors.avg_depth }}</span>
+        </div>
         <!-- Input: Deco Dive -->
         <div>
             <label for="deco_dive_block">Deco. Dive</label>
@@ -80,6 +102,7 @@
                 </span>
             </fieldset>
         </div>
+
 
         <button>Save</button>
     </fieldset>
