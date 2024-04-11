@@ -2,7 +2,7 @@
 
 <h1>{{ .Title }}</h1>
 
-<form action="{{ if eq .Dive.Num 0 }}/dives/new{{ else }}/dives/{{ .Dive.ID }}/edit{{ end }}" method="post">
+<form>
     <fieldset>
         <legend>Dive Data</legend>
         <!-- Input: Site -->
@@ -103,24 +103,24 @@
             </fieldset>
         </div>
 
-
-        <button>Save</button>
+        <button
+            hx-post="{{ if eq .Dive.Num 0 }}/dives/new{{ else }}/dives/{{ .Dive.ID }}/edit{{ end }}"
+            hx-target="body"
+            hx-push-url="true">Save</button>
+        {{ if ne .Dive.Num 0 }}
+        <button
+            class="danger"
+            id="delete-btn"
+            hx-delete="/dives/{{ .Dive.ID }}"
+            hx-confirm="Are you sure you want to delete this dive record?"
+            hx-target="body"
+            hx-push-url="true">Delete</button>
+        {{ end }}
     </fieldset>
 </form>
 
-{{ if ne .Dive.Num 0 }}
-<span>
-    <button
-        id="delete-btn"
-        hx-delete="/dives/{{ .Dive.ID }}"
-        hx-confirm="Are you sure you want to delete this dive record?"
-        hx-target="body"
-        hx-push-url="true">Delete</button>
-</span>
-{{ end }}
-
-<p>
+<div>
     <a href="/dives">Back</a>
-</p>
+</div>
 
 {{ template "trail" . }}

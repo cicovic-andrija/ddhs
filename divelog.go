@@ -33,8 +33,15 @@ type DiveLog struct {
 	dives         map[string]*Dive //
 	sorted        DiveList         //
 	renumbered    atomic.Bool      //
-	sequence      uint64           // persistence: always one ahead from persistent storage, updated on save
-	lastPersisted time.Time        // persistence: read from persistent storage, updated on save
+	sequence      uint64           // persistence: always one ahead from persistent storage, incremented on save
+	lastPersisted time.Time        // persistence: read from persistent storage, set on save
+}
+
+func NewDiveLog() *DiveLog {
+	return &DiveLog{
+		dives:  make(map[string]*Dive),
+		sorted: make(DiveList, 0),
+	}
 }
 
 func (dl *DiveLog) All() DiveList {
@@ -45,7 +52,7 @@ func (dl *DiveLog) Find(id string) *Dive {
 	return dl.dives[id]
 }
 
-// Reconstruct `dives` from a DiveList. Also, make sure `sorted` is initialized with a sorted copy of the DiveList.
+// Reconstruct `dives` from a list of dive records. Also, make sure `sorted` is initialized with a sorted dive list.
 func (dl *DiveLog) Reconstruct(diveRecords []*DiveRecord) error {
 	dives := make(DiveList, 0, len(diveRecords))
 	for i, diveRecord := range diveRecords {

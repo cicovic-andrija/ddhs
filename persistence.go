@@ -28,10 +28,7 @@ const (
 
 var ErrCorruptedLog = errors.New("corrupted log file")
 
-var MLog DiveLog = DiveLog{
-	dives:  make(map[string]*Dive),
-	sorted: make(DiveList, 0),
-}
+var MLog *DiveLog = NewDiveLog()
 
 type PersistedDiveLog struct {
 	Version  string        `json:"version"`

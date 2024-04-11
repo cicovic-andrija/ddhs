@@ -1,5 +1,6 @@
 /* ------------------------------------------ */
 /* Overrides for definitions from Simple.css. */
+/* ------------------------------------------ */
 
 /* Always use the "light" theme. */
 :root,
@@ -44,21 +45,11 @@ mark {
     color: white;
 }
 
-/* Override <section> tag settings. */
-section {
-    margin-bottom: 0;
-}
-
 /* ------------------------------------------ */
 /* Custom definitions. */
+/* ------------------------------------------ */
 
-.error {
-    display: inline-block;
-    font-weight: bold;
-    font-size: medium;
-    color: var(--code);
-}
-
+/* TODO: Remove this */
 table {
     width: 100%;
     table-layout: fixed;
@@ -72,6 +63,23 @@ tr.htmx-swapping {
 
 p.p-tight {
     margin-bottom: 0;
+}
+
+button.danger {
+    background-color: crimson;
+    border-color: crimson;
+}
+
+button.danger:enabled:hover {
+    background-color: red;
+    border-color: red;
+}
+
+.error {
+    display: inline-block;
+    font-weight: bold;
+    font-size: medium;
+    color: var(--code);
 }
 
 .progress {

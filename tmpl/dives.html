@@ -2,25 +2,33 @@
 
 <h1>{{ .Title }}</h1>
 
-<form action="/dives" method="get">
-    <label for="filter_before">Before:</label>
+<form id="dives_filter_form">
+    <label style="display: inline-block" for="filter_before">Before</label>
     <input id="filter_before" type="date" name="before" value="{{ .NormalizedDateValue .BeforeFilter }}" />
-    <label for="filter_after">After:</label>
+    <label style="display: inline-block" for="filter_after">After</label>
     <input id="filter_after" type="date" name="after" value="{{ .NormalizedDateValue .AfterFilter }}" />
-    <div><input type="submit" value="Filter" /></div>
+    <a class="button" hx-get="/dives" hx-target="body" hx-include="#dives_filter_form" hx-push-url="true">Filter</a>
+    <a class="button" href="#" hx-get="/dives" hx-target="body" hx-push-url="true">Reset</a>
 </form>
 
-<p class="p-tight">Found {{ .Total }} dive records in total:</p>
+<p class="p-tight">
+    <small>Search results: found {{ .Total }} dive records in total.</small>
+    {{ if .Renumbered }}
+    <br>
+    <small>Dives have been <mark>automatically re-numbered</mark> since the last New/Save/Delete operation. </small>
+    {{ end }}
+</p>
 
 <form>
-    <figure> <!-- CSS library provides a horizontal scroller through this element. -->
+    <!-- CSS library provides a horizontal scroller through the figure element. -->
+    <figure>
     <table>
         <thead>
             <tr>
                 <th>Actions</th>
-                <th>Dive #</th>
-                <th>Date + Time</th>
-                <th>Site</th>
+                <th>No.</th>
+                <th>Date / Time</th>
+                <th>Dive Site</th>
             </tr>
         </thead>
         <tbody>
@@ -54,13 +62,6 @@
     </figure>
 </form>
 
-{{ if .Renumbered }}
-<small><em>Dives have been <mark>automatically re-numbered</mark> since the last New/Save/Delete operation.</em></small>
-{{ end }}
-
-<p class="p-tight">
-    <a class="button" href="/dives/new">New Dive</a>
-    <a class="button" href="#" hx-get="/dives" hx-target="body" hx-push-url="true">Reset Filters</a>
-</p>
+<div><a class="button" href="/dives/new">New Dive</a></div>
 
 {{ template "trail" . }}

@@ -15,22 +15,20 @@
 
 <body hx-boost="true">
 
-<section>
-    <span style="float: right;">Logged in: <strong>Andrija</strong>
-</section>
+<header>
+    <span style="float: right; margin-right: 10%;">Signed in: <strong>Andrija</strong> | <a href="/">Home</a> | <a href="/">Sign Out</a></span>
+</header>
 {{ end }}
 
 <!-- --------------------------------------------------------------------------------------------------------------- -->
 
 {{ define "trail" }}
-<section>
-    <div style="margin-bottom: 24px;">
-        <small>
-            Andrija Cicović | 2024 |
-            Bug reports are welcome @ <a href="mailto:cicovic.andrija.alt@gmail.com">cicovic.andrija.alt@gmail.com</a>.
-        </small>
-    </div>
-</section>
+<footer>
+    <small>
+        Andrija Cicović | 2024 |
+        Bug reports are welcome @ <a href="mailto:cicovic.andrija.alt@gmail.com">cicovic.andrija.alt@gmail.com</a>.
+    </small>
+</footer>
 
 </body>
 
@@ -59,3 +57,5 @@
     {{ end }}
 </div>
 {{ end }}
+
+<!-- --------------------------------------------------------------------------------------------------------------- -->
